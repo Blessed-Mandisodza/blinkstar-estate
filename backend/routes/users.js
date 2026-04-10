@@ -1,45 +1,57 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const User = require('../models/User');
-const authMiddleware = require('./auth').authMiddleware || require('../middleware/auth'); // adjust path if needed
-const bcrypt = require('bcryptjs');
+const User = require("../models/User");
+const authMiddleware = require("../middleware/auth");
+const bcrypt = require("bcryptjs");
 
-// Get current user profile
-router.get('/me', authMiddleware, async (req, res) => {
+router.get("/me", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     res.json(user);
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// Update current user profile
-router.put('/me', authMiddleware, async (req, res) => {
+router.put("/me", authMiddleware, async (req, res) => {
   try {
     const updates = {};
-    if (req.body.name) updates.name = req.body.name;
-    if (req.body.email) updates.email = req.body.email;
+
+    if (req.body.name) {
+      updates.name = req.body.name;
+    }
+
+    if (req.body.email) {
+      updates.email = req.body.email;
+    }
+
     if (req.body.password) {
       const salt = await bcrypt.genSalt(10);
       updates.password = await bcrypt.hash(req.body.password, salt);
     }
-    const user = await User.findByIdAndUpdate(req.user.id, updates, { new: true }).select('-password');
+
+    const user = await User.findByIdAndUpdate(req.user.id, updates, {
+      new: true,
+    }).select("-password");
+
     res.json(user);
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// Delete current user
-router.delete('/me', authMiddleware, async (req, res) => {
+router.delete("/me", authMiddleware, async (req, res) => {
   try {
     await User.findByIdAndDelete(req.user.id);
-    res.json({ message: 'Account deleted' });
+    res.json({ message: "Account deleted" });
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-module.exports = router; 
+module.exports = router;

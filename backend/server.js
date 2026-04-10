@@ -1,271 +1,131 @@
-// const express = require("express");
-// const mongoose = require("mongoose");
-// const cors = require("cors");
-// const dotenv = require("dotenv");
-// const authRoutes = require("./routes/auth");
-// const propertyRoutes = require("./routes/property");
-
-// dotenv.config();
-
-// const app = express();
-
-// // Middleware
-// app.use(cors());
-// app.use(express.json());
-// app.use("/uploads", express.static("uploads"));
-
-// // Detailed error logging
-// mongoose.connection.on("error", (err) => {
-//   console.error("MongoDB connection error:", err);
-// });
-
-// // Connect to MongoDB with detailed error logging
-// mongoose
-//   .connect(
-//     process.env.MONGO_URI ||
-//       "mongodb+srv://blinkstardesigns:blinkstardesigns@cluster0.hked8ma.mongodb.net/",
-//     {
-//       useNewUrlParser: true,
-//       useUnifiedTopology: true,
-//     }
-//   )
-//   .then(() => console.log("Connected to MongoDB successfully"))
-//   .catch((err) => {
-//     console.error("MongoDB connection error:", err);
-//     process.exit(1);
-//   });
-
-// // Test route
-// app.get("/api/test", (req, res) => {
-//   res.json({ message: "Server is working!" });
-// });
-
-// // Routes
-// app.use("/api/auth", authRoutes);
-// app.use("/api/property", propertyRoutes);
-// app.use("/api/users", require("./routes/users"));
-// app.use("/api/messages", require("./routes/message"));
-
-// // Error handling middleware
-// app.use((err, req, res, next) => {
-//   console.error("Error details:", err);
-//   console.error("Stack trace:", err.stack);
-//   res.status(500).json({
-//     message: "Something went wrong!",
-//     error:
-//       process.env.NODE_ENV === "development"
-//         ? err.message
-//         : "Internal server error",
-//   });
-// });
-
-// const PORT = process.env.PORT || 5000;
-// app.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-// });
-
-/////////////////////////////////////////////////////////////////
-
-// const express = require("express");
-// const mongoose = require("mongoose");
-// const cors = require("cors");
-// const dotenv = require("dotenv");
-// const path = require("path"); // ← Added: needed to serve React build
-
-// dotenv.config();
-
-// const app = express();
-
-// // Middleware
-// const allowedOrigins = [
-//   process.env.FRONTEND_URL,
-//   process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`,
-//   process.env.RENDER_FRONTEND_URL,
-//   process.env.NODE_ENV !== "production" && "http://localhost:3000",
-// ].filter(Boolean);
-
-// app.use(
-//   cors({
-//     origin: allowedOrigins.length > 0 ? allowedOrigins : "*",
-//     credentials: true,
-//   })
-// );
-// app.use(express.json());
-// app.use("/uploads", express.static("uploads"));
-
-// // Detailed error logging
-// mongoose.connection.on("error", (err) => {
-//   console.error("MongoDB connection error:", err);
-// });
-
-// // Connect to MongoDB
-// mongoose
-//   .connect(
-//     process.env.MONGO_URI ||
-//       "mongodb+srv://blinkstardesigns:blinkstardesigns@cluster0.hked8ma.mongodb.net/blinkstar-estate?retryWrites=true&w=majority",
-//     {
-//       useNewUrlParser: true,
-//       useUnifiedTopology: true,
-//     }
-//   )
-//   .then(() => console.log("Connected to MongoDB successfully"))
-//   .catch((err) => {
-//     console.error("MongoDB connection error:", err);
-//     process.exit(1);
-//   });
-
-// // Test route
-// app.get("/api/test", (req, res) => {
-//   res.json({ message: "Server is working!" });
-// });
-
-// // Routes
-// app.use("/api/auth", require("./routes/auth"));
-// app.use("/api/property", require("./routes/property"));
-// app.use("/api/users", require("./routes/users"));
-// app.use("/api/messages", require("./routes/message"));
-
-// // Serve React frontend in production
-// if (process.env.NODE_ENV === "production") {
-//   const buildPath = path.join(__dirname, "../frontend", "build");
-//   app.use(express.static(buildPath));
-//   console.log("Serving static files from:", buildPath);
-
-//   app.get("*", (req, res) => {
-//     res.sendFile(path.resolve(buildPath, "index.html"));
-//   });
-// } else {
-//   app.get("/", (req, res) => {
-//     res.send(
-//       "Backend is running. Visit /api/test or deploy frontend for production."
-//     );
-//   });
-// }
-
-// // Error handling middleware
-// app.use((err, req, res, next) => {
-//   console.error("Error details:", err);
-//   console.error("Stack trace:", err.stack);
-//   res.status(500).json({
-//     message: "Something went wrong!",
-//     error:
-//       process.env.NODE_ENV === "development"
-//         ? err.message
-//         : "Internal server error",
-//   });
-// });
-
-// // Use PORT provided by Render or fallback to 5000
-// const PORT = process.env.PORT || 5000;
-// app.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-// });
-
-////////////////////////////////////////////////////////////////////////
-
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
-// Remove path import since we're not serving static files
-// const path = require("path");
+const path = require("path");
 
 dotenv.config();
 
 const app = express();
 
-// Middleware - Simplify CORS for now
+const getAllowedOrigins = () => {
+  const configuredOrigins = [
+    process.env.FRONTEND_URL,
+    ...(process.env.CORS_ORIGINS || "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+    process.env.NODE_ENV !== "production" ? "http://localhost:3000" : null,
+  ].filter(Boolean);
+
+  return [...new Set(configuredOrigins)];
+};
+
+const allowedOrigins = getAllowedOrigins();
+
 app.use(
   cors({
-    origin: true, // Allow all origins temporarily
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
     credentials: true,
-  })
+  }),
 );
 app.use(express.json());
-app.use("/uploads", express.static("uploads"));
+app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// MongoDB Connection (your existing code is fine)
-mongoose
-  .connect(
-    process.env.MONGO_URI ||
-      "mongodb+srv://blinkstardesigns:blinkstardesigns@cluster0.hked8ma.mongodb.net/blinkstar-estate?retryWrites=true&w=majority",
-    {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    }
-  )
-  .then(() => console.log("Connected to MongoDB successfully"))
-  .catch((err) => {
-    console.error("MongoDB connection error:", err);
-    process.exit(1);
-  });
+let connectionPromise = null;
 
-// Test route
+const connectToDatabase = async () => {
+  const mongoUri = process.env.MONGO_URI;
+
+  if (!mongoUri) {
+    throw new Error("Missing required environment variable: MONGO_URI");
+  }
+
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  if (mongoose.connection.readyState === 2 && connectionPromise) {
+    return connectionPromise;
+  }
+
+  connectionPromise = mongoose
+    .connect(mongoUri)
+    .then(() => {
+      console.log("Connected to MongoDB successfully");
+      return mongoose.connection;
+    })
+    .catch((error) => {
+      connectionPromise = null;
+      throw error;
+    });
+
+  return connectionPromise;
+};
+
+mongoose.connection.on("error", (error) => {
+  console.error("MongoDB connection error:", error);
+});
+
+connectToDatabase().catch((error) => {
+  console.error("MongoDB connection error:", error);
+});
+
 app.get("/api/test", (req, res) => {
   res.json({ message: "Server is working!" });
 });
 
-// Health check route (important for Render)
-app.get("/health", (req, res) => {
-  res.json({
-    status: "OK",
-    service: "Blinkstar Estate API",
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// Routes
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/property", require("./routes/property"));
 app.use("/api/users", require("./routes/users"));
 app.use("/api/messages", require("./routes/message"));
 
-// REMOVE THIS ENTIRE SECTION - No React static file serving
-// if (process.env.NODE_ENV === "production") {
-//   const buildPath = path.join(__dirname, "../frontend", "build");
-//   app.use(express.static(buildPath));
-//   console.log("Serving static files from:", buildPath);
-
-//   app.get("*", (req, res) => {
-//     res.sendFile(path.resolve(buildPath, "index.html"));
-//   });
-// } else {
-//   app.get("/", (req, res) => {
-//     res.send(
-//       "Backend is running. Visit /api/test or deploy frontend for production."
-//     );
-//   });
-// }
-
-// Simple root route instead
 app.get("/", (req, res) => {
   res.json({
-    message: "Blinkstar Estate Backend API",
-    endpoints: {
-      test: "/api/test",
-      health: "/health",
-      auth: "/api/auth",
-      properties: "/api/property",
-      users: "/api/users",
-    },
-    frontend: "Deployed separately on Vercel",
+    message: "Blinkstar Properties backend is running.",
   });
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Error details:", err);
   console.error("Stack trace:", err.stack);
-  res.status(500).json({
-    message: "Something went wrong!",
+
+  const isCorsError =
+    err && typeof err.message === "string" && err.message.includes("not allowed by CORS");
+
+  res.status(isCorsError ? 403 : 500).json({
+    message: isCorsError ? "Request blocked by CORS" : "Something went wrong!",
     error:
       process.env.NODE_ENV === "development"
         ? err.message
-        : "Internal server error",
+        : isCorsError
+          ? "CORS error"
+          : "Internal server error",
   });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+
+  connectToDatabase()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+      });
+    })
+    .catch((error) => {
+      console.error("Failed to start server:", error);
+      process.exit(1);
+    });
+}
+
+module.exports = app;
+module.exports.connectToDatabase = connectToDatabase;

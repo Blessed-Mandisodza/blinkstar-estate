@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Box, TextField, Button, Typography, Grid, CircularProgress, Paper, Divider } from '@mui/material';
+import { apiFetch, authFetch, resolveMediaUrl } from '../../utils/authFetch';
 import 'leaflet/dist/leaflet.css';
 
 const initialState = {
@@ -27,7 +28,7 @@ const PropertyForm = () => {
 
   useEffect(() => {
     if (id) {
-      fetch(`/api/property/${id}`)
+      apiFetch(`/api/property/${id}`)
         .then(res => res.json())
         .then(data => {
           setForm({
@@ -61,12 +62,10 @@ const PropertyForm = () => {
     const formData = new FormData();
     Object.entries(form).forEach(([key, value]) => formData.append(key, value));
     selectedFiles.forEach(file => formData.append('images', file));
-    const token = localStorage.getItem('token');
     try {
-      const res = await fetch(id ? `/api/property/${id}` : '/api/property', {
+      const res = await authFetch(id ? `/api/property/${id}` : '/api/property', {
         method: id ? 'PUT' : 'POST',
         body: formData,
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         credentials: 'include',
       });
       if (!res.ok) throw new Error('Failed to save property');
@@ -118,7 +117,7 @@ const PropertyForm = () => {
                 {selectedFiles.length === 0 && existingImages.map((img, idx) => (
                   <img
                     key={idx}
-                    src={img}
+                    src={resolveMediaUrl(img)}
                     alt="existing"
                     style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4 }}
                   />

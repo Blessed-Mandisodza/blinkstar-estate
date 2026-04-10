@@ -10,7 +10,6 @@ import FormControl from "@mui/material/FormControl";
 import Link from "@mui/material/Link";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import Stack from "@mui/material/Stack";
 import MuiCard from "@mui/material/Card";
 import Container from "@mui/material/Container";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -19,7 +18,7 @@ import Alert from "@mui/material/Alert";
 import { styled } from "@mui/material/styles";
 import ForgotPassword from "./ForgotPassword";
 import { GoogleIcon, FacebookIcon } from "./CustomIcons";
-import { authFetch } from "../../utils/authFetch";
+import { authFetch, buildApiUrl } from "../../utils/authFetch";
 import { useAuth } from "../../context/AuthContext";
 
 // Styled Card component for sign-in form
@@ -214,13 +213,11 @@ export default function SignIn() {
   };
 
   const handleGoogleSignIn = async () => {
-    // Implement Google Sign In
-    window.location.href = "http://localhost:5000/api/auth/google";
+    window.location.href = buildApiUrl("/api/auth/google");
   };
 
   const handleFacebookSignIn = async () => {
-    // Implement Facebook Sign In
-    window.location.href = "http://localhost:5000/api/auth/facebook";
+    window.location.href = buildApiUrl("/api/auth/facebook");
   };
 
   return (

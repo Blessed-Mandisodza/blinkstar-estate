@@ -13,10 +13,11 @@ import {
   Chip,
   Container,
   IconButton,
-  Modal,
   Dialog,
   DialogContent,
   DialogActions,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
   LocationOn,
@@ -30,13 +31,13 @@ import {
   NavigateBefore,
   NavigateNext,
 } from "@mui/icons-material";
-import ContactForm from "./ContactForm";
 import Loader from "../ui/Loader";
+import { apiFetch, authFetch, resolveMediaUrl } from "../../utils/authFetch";
 
 const getImageUrl = (img) => {
   if (!img) return "";
   if (img.startsWith("http")) return img;
-  return img.startsWith("/uploads") ? img : `/uploads/${img}`;
+  return resolveMediaUrl(img.startsWith("/uploads") ? img : `/uploads/${img}`);
 };
 
 const PropertyDetail = () => {
@@ -47,9 +48,11 @@ const PropertyDetail = () => {
   const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
-    fetch(`/api/property/${id}`)
+    apiFetch(`/api/property/${id}`)
       .then((res) => res.json())
       .then((data) => {
         setProperty(data);
@@ -95,9 +98,8 @@ const PropertyDetail = () => {
     if (!window.confirm("Are you sure you want to delete this property?"))
       return;
     try {
-      const res = await fetch(`/api/property/${property._id}`, {
+      const res = await authFetch(`/api/property/${property._id}`, {
         method: "DELETE",
-        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete property");
       navigate("/properties");
@@ -355,7 +357,7 @@ const PropertyDetail = () => {
         <Grid item xs={12} md={4}>
           <Paper
             elevation={3}
-            sx={{ p: 3, borderRadius: 2, position: "sticky", top: 20 }}
+            sx={{ p: 3, borderRadius: 2, position: isMobile ? 'static' : 'sticky', top: 20, mb: 3 }}
           >
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
               Contact About This Property
@@ -388,8 +390,48 @@ const PropertyDetail = () => {
               </Button>
             </Box>
           </Paper>
+
+          {/* Property Highlights */}
+          <Paper
+            elevation={3}
+            sx={{ p: 3, borderRadius: 2, mt: 3 }}
+          >
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+              Property Highlights
+            </Typography>
+            <Box sx={{ '& > *:not(:last-child)': { mb: 1 } }}>
+              <Box display="flex" justifyContent="space-between">
+                <Typography variant="body2" color="text.secondary">
+                  Property Type:
+                </Typography>
+                <Typography variant="body2" fontWeight={500}>
+                  {property.propertyType?.charAt(0).toUpperCase() + property.propertyType?.slice(1) || 'N/A'}
+                </Typography>
+              </Box>
+              <Box display="flex" justifyContent="space-between">
+                <Typography variant="body2" color="text.secondary">
+                  Year Built:
+                </Typography>
+                <Typography variant="body2" fontWeight={500}>
+                  {property.yearBuilt || 'N/A'}
+                </Typography>
+              </Box>
+              <Box display="flex" justifyContent="space-between">
+                <Typography variant="body2" color="text.secondary">
+                  Garage:
+                </Typography>
+                <Typography variant="body2" fontWeight={500}>
+                  {property.garage ? `${property.garage} spaces` : 'No'}
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
         </Grid>
       </Grid>
+
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        {/* Property details content */}
+      </Container>
     </Container>
   );
 };

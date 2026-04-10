@@ -19,6 +19,7 @@ import {
   FavoriteBorder,
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
+import { resolveMediaUrl } from "../../utils/authFetch";
 
 const StyledCard = styled(Card)(({ theme }) => ({
   height: "100%",
@@ -94,7 +95,7 @@ export default function PropertyCard({ property, onEdit, onDelete }) {
           )}
         </FavoriteButton>
         <PropertyImage
-          image={property.images && property.images[0]}
+          image={resolveMediaUrl(property.images && property.images[0])}
           title={property.title}
         />
       </Box>

@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import PropertyCard from "./PropertyCard";
 import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied";
 import Loader from "../ui/Loader";
+import { apiFetch, authFetch } from "../../utils/authFetch";
 
 const PropertyList = ({ filters = {} }) => {
   const [properties, setProperties] = useState([]);
@@ -13,7 +14,7 @@ const PropertyList = ({ filters = {} }) => {
   const { user } = useAuth();
 
   useEffect(() => {
-    fetch("/api/property")
+    apiFetch("/api/property")
       .then((res) => res.json())
       .then((data) => {
         setProperties(data);
@@ -24,7 +25,7 @@ const PropertyList = ({ filters = {} }) => {
 
   useEffect(() => {
     if (user) {
-      fetch("/api/user/favorites", { credentials: "include" })
+      authFetch("/api/auth/favorites")
         .then((res) => res.json())
         .then((data) => setFavorites(data.favorites?.map((f) => f._id) || []));
     } else {
@@ -34,9 +35,8 @@ const PropertyList = ({ filters = {} }) => {
 
   const toggleFavorite = async (propertyId) => {
     if (!user) return;
-    const res = await fetch(`/api/user/favorites/${propertyId}`, {
+    const res = await authFetch(`/api/auth/favorites/${propertyId}`, {
       method: "POST",
-      credentials: "include",
     });
     if (res.ok) {
       const data = await res.json();
@@ -104,10 +104,7 @@ const PropertyList = ({ filters = {} }) => {
               isFavorite={favorites.includes(property._id)}
               onFavoriteToggle={
                 user
-                  ? (e) => {
-                      e.preventDefault();
-                      toggleFavorite(property._id);
-                    }
+                  ? () => toggleFavorite(property._id)
                   : undefined
               }
             />

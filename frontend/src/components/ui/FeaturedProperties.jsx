@@ -3,6 +3,7 @@ import { Box, Container, Typography, Grid, Button } from "@mui/material";
 import { ArrowForward } from "@mui/icons-material";
 import PropertyCard from "../property/PropertyCard";
 import Loader from "./Loader";
+import { apiFetch } from "../../utils/authFetch";
 
 export default function FeaturedProperties() {
   const [properties, setProperties] = useState([]);
@@ -13,7 +14,7 @@ export default function FeaturedProperties() {
     const fetchRecentProperties = async () => {
       try {
         setLoading(true);
-        const response = await fetch("/api/property?limit=8&sort=createdAt");
+        const response = await apiFetch("/api/property?limit=8&sort=createdAt");
 
         if (!response.ok) {
           throw new Error("Failed to fetch properties");
@@ -31,21 +32,6 @@ export default function FeaturedProperties() {
 
     fetchRecentProperties();
   }, []);
-
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return "/placeholder-property.jpg";
-    if (imagePath.startsWith("http")) return imagePath;
-    return `http://localhost:5000${imagePath}`;
-  };
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
 
   if (loading) {
     return (

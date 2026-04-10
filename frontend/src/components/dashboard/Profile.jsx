@@ -10,23 +10,17 @@ import {
   Grid,
   Snackbar,
   Alert,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
 } from "@mui/material";
 import {
   Edit as EditIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
-  Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
 
 export default function Profile() {
-  const { user, setUser, logout } = useAuth();
+  const { user, setUser } = useAuth();
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || "",
@@ -40,8 +34,6 @@ export default function Profile() {
     message: "",
     severity: "success",
   });
-  const [deleteDialog, setDeleteDialog] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
 
   const handleEdit = () => setEditing(true);
   const handleCancel = () => {
@@ -86,58 +78,6 @@ export default function Profile() {
     }
   };
   const handleAlertClose = () => setAlert({ ...alert, open: false });
-
-  // Delete account functions
-  const handleDeleteClick = () => {
-    setDeleteDialog(true);
-  };
-
-  const handleDeleteCancel = () => {
-    setDeleteDialog(false);
-    setConfirmText("");
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (confirmText !== "DELETE") {
-      setAlert({
-        open: true,
-        message: "Please type 'DELETE' to confirm account deletion",
-        severity: "error",
-      });
-      return;
-    }
-
-    try {
-      const res = await authFetch("/api/users/me", {
-        method: "DELETE",
-      });
-
-      if (!res.ok) throw new Error("Failed to delete account");
-
-      setAlert({
-        open: true,
-        message: "Account deleted successfully",
-        severity: "success",
-      });
-
-      // Close dialog and redirect after successful deletion
-      setDeleteDialog(false);
-      
-      // Logout user and redirect to home page
-      setTimeout(() => {
-        if (logout) logout();
-        // You might want to redirect to home page here
-        window.location.href = "/";
-      }, 2000);
-
-    } catch (error) {
-      setAlert({
-        open: true,
-        message: error.message || "Failed to delete account",
-        severity: "error",
-      });
-    }
-  };
 
   return (
     <Container maxWidth="sm">
@@ -251,68 +191,7 @@ export default function Profile() {
               )}
             </Box>
           </Box>
-
-          {/* Delete Account Section */}
-          <Box sx={{ mt: 6, pt: 3, borderTop: 1, borderColor: 'divider' }}>
-            <Typography variant="h6" color="error" gutterBottom>
-              Danger Zone
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Once you delete your account, there is no going back. Please be certain.
-            </Typography>
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={handleDeleteClick}
-            >
-              Delete Account
-            </Button>
-          </Box>
         </Paper>
-
-        {/* Delete Confirmation Dialog */}
-        <Dialog
-          open={deleteDialog}
-          onClose={handleDeleteCancel}
-          aria-labelledby="delete-dialog-title"
-        >
-          <DialogTitle id="delete-dialog-title">
-            Delete Account
-          </DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              This action cannot be undone. This will permanently delete your
-              account and remove all your data from our servers.
-            </DialogContentText>
-            <DialogContentText sx={{ mt: 2 }}>
-              Please type <strong>DELETE</strong> to confirm:
-            </DialogContentText>
-            <TextField
-              autoFocus
-              fullWidth
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              margin="dense"
-              placeholder="DELETE"
-              sx={{ mt: 1 }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleDeleteCancel}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleDeleteConfirm} 
-              color="error"
-              variant="contained"
-              disabled={confirmText !== "DELETE"}
-            >
-              Delete Account
-            </Button>
-          </DialogActions>
-        </Dialog>
-
         <Snackbar
           open={alert.open}
           autoHideDuration={6000}

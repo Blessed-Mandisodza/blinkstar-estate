@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, TextField, Button, Typography, Alert, Paper } from '@mui/material';
+import { apiFetch } from '../../utils/authFetch';
 
 const ContactForm = ({ propertyTitle, propertyId }) => {
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
@@ -17,7 +18,7 @@ const ContactForm = ({ propertyTitle, propertyId }) => {
     setError('');
     setSuccess(false);
     try {
-      const res = await fetch('/api/property/contact', {
+      const res = await apiFetch('/api/property/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, propertyId }),

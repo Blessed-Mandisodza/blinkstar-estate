@@ -16,12 +16,12 @@ import HotelIcon from "@mui/icons-material/Hotel";
 import BathtubIcon from "@mui/icons-material/Bathtub";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import { resolveMediaUrl } from "../../utils/authFetch";
 
 const getImageUrl = (img) => {
   if (!img) return "";
   if (img.startsWith("http")) return img;
-  if (img.startsWith("/uploads")) return img;
-  return `/uploads/${img}`;
+  return resolveMediaUrl(img.startsWith("/uploads") ? img : `/uploads/${img}`);
 };
 
 const formatPrice = (price) => {

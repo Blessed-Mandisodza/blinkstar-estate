@@ -17,6 +17,7 @@ import Container from "@mui/material/Container";
 import { styled } from "@mui/material/styles";
 import { GoogleIcon, FacebookIcon } from "./CustomIcons";
 import { useAuth } from "../../context/AuthContext";
+import { apiFetch, buildApiUrl } from "../../utils/authFetch";
 
 // Styled Card component for sign-up form
 const Card = styled(MuiCard)(({ theme }) => ({
@@ -176,7 +177,7 @@ export default function SignUp() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/auth/register", {
+      const response = await apiFetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -219,11 +220,11 @@ export default function SignUp() {
   };
 
   const handleGoogleSignUp = async () => {
-    window.location.href = "http://localhost:5000/api/auth/google";
+    window.location.href = buildApiUrl("/api/auth/google");
   };
 
   const handleFacebookSignUp = async () => {
-    window.location.href = "http://localhost:5000/api/auth/facebook";
+    window.location.href = buildApiUrl("/api/auth/facebook");
   };
 
   return (

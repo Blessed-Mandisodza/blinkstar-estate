@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
+import { apiFetch } from '../../utils/authFetch';
 
 const StyledCard = styled(Card)(({ theme }) => ({
   height: '100%',
@@ -121,7 +122,7 @@ export default function PropertyCategories() {
   useEffect(() => {
     const fetchCategoryCounts = async () => {
       try {
-        const response = await fetch('/api/property');
+        const response = await apiFetch('/api/property');
         const properties = await response.json();
         
         // Count properties by type
