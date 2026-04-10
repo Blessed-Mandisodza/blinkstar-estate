@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Grid, Typography, Link, Box, IconButton, Stack, useTheme, useMediaQuery } from '@mui/material';
+import { Container, Grid, Typography, Link, Box, IconButton, Stack } from '@mui/material';
 import { Facebook, Twitter, Instagram, Phone, Email, LocationOn } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 
@@ -41,9 +41,6 @@ const FooterSection = styled(Box)(({ theme }) => ({
 }));
 
 const Footer = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
   return (
     <StyledFooter>
       <Container maxWidth="lg">

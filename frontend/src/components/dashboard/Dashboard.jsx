@@ -23,7 +23,6 @@ import {
   useTheme,
   useMediaQuery,
   Button,
-  Paper,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -34,7 +33,6 @@ import {
   Message as MessageIcon,
   Settings as SettingsIcon,
   Logout as LogoutIcon,
-  Search as SearchIcon,
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 import bsLogo from "../../bs.png";
@@ -411,7 +409,7 @@ export default function Dashboard() {
                               } else {
                                 alert("Failed to delete property");
                               }
-                            } catch (err) {
+                            } catch {
                               alert("Error deleting property");
                             }
                           }

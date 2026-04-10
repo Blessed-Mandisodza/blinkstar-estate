@@ -6,12 +6,9 @@ import {
   Card,
   CardActionArea,
   CardContent,
-  CardMedia,
 } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import ApartmentIcon from "@mui/icons-material/Apartment";
-import VillaIcon from "@mui/icons-material/Villa";
-import BusinessIcon from "@mui/icons-material/Business";
 
 const categories = [
   {
@@ -33,7 +30,7 @@ const PropertyCategories = () => {
         Browse by Category
       </Typography>
       <Grid container spacing={4} justifyContent="center">
-        {categories.map((cat, idx) => (
+        {categories.map((cat) => (
           <Grid item xs={12} sm={6} md={3} key={cat.label}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardActionArea href={cat.link}>

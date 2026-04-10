@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import { Box, TextField, Button, Typography, Grid, CircularProgress, Paper, Divider } from '@mui/material';
 import { apiFetch, authFetch, resolveMediaUrl } from '../../utils/authFetch';
 import 'leaflet/dist/leaflet.css';
@@ -19,7 +18,6 @@ const initialState = {
 const PropertyForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [form, setForm] = useState(initialState);
   const [loading, setLoading] = useState(!!id);
   const [error, setError] = useState('');
