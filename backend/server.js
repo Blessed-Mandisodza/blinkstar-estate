@@ -11,6 +11,8 @@ const app = express();
 const normalizeOrigin = (origin) =>
   typeof origin === "string" ? origin.trim().replace(/\/+$/, "") : null;
 
+const getMongoUri = () => process.env.MONGO_URI || process.env.MONGODB_URI;
+
 const getAllowedOrigins = () => {
   const configuredOrigins = [
     process.env.FRONTEND_URL,
@@ -56,10 +58,12 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 let connectionPromise = null;
 
 const connectToDatabase = async () => {
-  const mongoUri = process.env.MONGO_URI;
+  const mongoUri = getMongoUri();
 
   if (!mongoUri) {
-    throw new Error("Missing required environment variable: MONGO_URI");
+    throw new Error(
+      "Missing required environment variable: MONGO_URI or MONGODB_URI"
+    );
   }
 
   if (mongoose.connection.readyState === 1) {
@@ -93,7 +97,20 @@ connectToDatabase().catch((error) => {
 });
 
 app.get("/api/test", (req, res) => {
-  res.json({ message: "Server is working!" });
+  res.json({
+    message: "Server is working!",
+    databaseConfigured: Boolean(getMongoUri()),
+    databaseConnected: mongoose.connection.readyState === 1,
+  });
+});
+
+app.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.use("/api/auth", require("./routes/auth"));
