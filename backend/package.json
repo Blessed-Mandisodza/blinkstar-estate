@@ -4,7 +4,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "cd frontend && npm install && npm run build",
+    "build": "node -e \"console.log('No backend build step required for Vercel')\"",
     "heroku-postbuild": "cd ../frontend && npm install && npm run build"
   },
   "dependencies": {
