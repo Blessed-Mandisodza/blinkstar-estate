@@ -8,16 +8,23 @@ dotenv.config();
 
 const app = express();
 
+const normalizeOrigin = (origin) =>
+  typeof origin === "string" ? origin.trim().replace(/\/+$/, "") : null;
+
 const getAllowedOrigins = () => {
   const configuredOrigins = [
     process.env.FRONTEND_URL,
     ...(process.env.CORS_ORIGINS || "")
       .split(",")
-      .map((origin) => origin.trim())
+      .map((origin) => normalizeOrigin(origin))
       .filter(Boolean),
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-    process.env.NODE_ENV !== "production" ? "http://localhost:3000" : null,
-  ].filter(Boolean);
+    process.env.VERCEL_URL ? normalizeOrigin(`https://${process.env.VERCEL_URL}`) : null,
+    process.env.NODE_ENV !== "production"
+      ? normalizeOrigin("http://localhost:3000")
+      : null,
+  ]
+    .map((origin) => normalizeOrigin(origin))
+    .filter(Boolean);
 
   return [...new Set(configuredOrigins)];
 };
@@ -27,11 +34,17 @@ const allowedOrigins = getAllowedOrigins();
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      const normalizedOrigin = normalizeOrigin(origin);
+
+      if (
+        !normalizedOrigin ||
+        allowedOrigins.length === 0 ||
+        allowedOrigins.includes(normalizedOrigin)
+      ) {
         return callback(null, true);
       }
 
-      return callback(new Error(`Origin ${origin} not allowed by CORS`));
+      return callback(new Error(`Origin ${normalizedOrigin} not allowed by CORS`));
     },
     credentials: true,
   }),
