@@ -1,5 +1,18 @@
 const API_BASE = (process.env.REACT_APP_API_URL || "").replace(/\/$/, "");
 
+async function ensureApiDidNotReturnHtml(response, path) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("text/html")) {
+    const preview = (await response.clone().text()).slice(0, 80).trim();
+    throw new Error(
+      `API returned HTML instead of JSON for ${path}. Check REACT_APP_API_URL and your Vercel project domains. Preview: ${preview}`
+    );
+  }
+
+  return response;
+}
+
 export function buildApiUrl(path = "") {
   if (!path) {
     return API_BASE;
@@ -27,7 +40,8 @@ export function resolveMediaUrl(path) {
 }
 
 export async function apiFetch(path, init = {}) {
-  return fetch(buildApiUrl(path), init);
+  const response = await fetch(buildApiUrl(path), init);
+  return ensureApiDidNotReturnHtml(response, path);
 }
 
 export async function authFetch(path, init = {}) {
@@ -43,6 +57,8 @@ export async function authFetch(path, init = {}) {
     headers,
     credentials: init.credentials || "include",
   });
+
+  await ensureApiDidNotReturnHtml(res, path);
 
   if (res.status === 401) {
     localStorage.removeItem("token");
