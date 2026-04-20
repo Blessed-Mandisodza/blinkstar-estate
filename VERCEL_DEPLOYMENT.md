@@ -26,19 +26,23 @@ The frontend already includes `frontend/vercel.json` so React Router routes work
 Environment variables:
 
 - `MONGO_URI`
+- `MONGODB_URI` if you are using the native Atlas/Vercel integration instead of `MONGO_URI`
 - `JWT_SECRET`
 - `FRONTEND_URL=https://your-frontend-domain.vercel.app`
-- `CORS_ORIGINS=`
+- `CORS_ORIGINS=https://your-frontend-domain.vercel.app`
 - `EMAIL_USER`
 - `EMAIL_PASS`
 
 The backend already includes `backend/vercel.json` and routes all requests through `api/index.js`.
 
+After changing backend environment variables in Vercel, redeploy the backend project so the new values are applied.
+
 ## 3. MongoDB Atlas
 
 - Add your Atlas connection string as `MONGO_URI` in the backend Vercel project.
+- If the Atlas/Vercel integration gives you `MONGODB_URI`, the backend will accept that too.
 - Make sure the database user has access to the correct database.
-- Review Atlas network access rules for your deployment setup.
+- Allow Atlas network access for Vercel traffic. The simplest setup is `0.0.0.0/0`.
 
 ## 4. Important Upload Note
 
