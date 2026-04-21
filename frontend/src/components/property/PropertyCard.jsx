@@ -20,7 +20,9 @@ import { resolveMediaUrl } from "../../utils/authFetch";
 
 const getImageUrl = (img) => {
   if (!img) return "";
-  if (img.startsWith("http")) return img;
+  if (img.startsWith("http") || img.startsWith("data:") || img.startsWith("blob:")) {
+    return img;
+  }
   return resolveMediaUrl(img.startsWith("/uploads") ? img : `/uploads/${img}`);
 };
 

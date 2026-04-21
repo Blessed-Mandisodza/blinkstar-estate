@@ -26,7 +26,9 @@ export default function Profile() {
     name: user?.name || "",
     email: user?.email || "",
     phone: user?.phone || "",
-    address: user?.address || "",
+    whatsapp: user?.whatsapp || "",
+    location: user?.location || "",
+    avatarUrl: user?.avatarUrl || "",
     bio: user?.bio || "",
   });
   const [alert, setAlert] = useState({
@@ -42,7 +44,9 @@ export default function Profile() {
       name: user?.name || "",
       email: user?.email || "",
       phone: user?.phone || "",
-      address: user?.address || "",
+      whatsapp: user?.whatsapp || "",
+      location: user?.location || "",
+      avatarUrl: user?.avatarUrl || "",
       bio: user?.bio || "",
     });
   };
@@ -94,7 +98,7 @@ export default function Profile() {
               mb: 3,
             }}
           >
-            <Avatar sx={{ width: 90, height: 90, mb: 2 }} src={user?.photoURL}>
+            <Avatar sx={{ width: 90, height: 90, mb: 2 }} src={formData.avatarUrl}>
               {formData.name?.[0]}
             </Avatar>
             <Typography variant="h6">{formData.name}</Typography>
@@ -138,9 +142,29 @@ export default function Profile() {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Address"
-                  name="address"
-                  value={formData.address}
+                  label="WhatsApp"
+                  name="whatsapp"
+                  value={formData.whatsapp}
+                  onChange={handleInputChange}
+                  disabled={!editing}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Location"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  disabled={!editing}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Avatar URL"
+                  name="avatarUrl"
+                  value={formData.avatarUrl}
                   onChange={handleInputChange}
                   disabled={!editing}
                 />

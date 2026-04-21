@@ -35,6 +35,10 @@ export function resolveMediaUrl(path) {
     return path;
   }
 
+  if (path.startsWith("data:") || path.startsWith("blob:")) {
+    return path;
+  }
+
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return buildApiUrl(normalizedPath);
 }

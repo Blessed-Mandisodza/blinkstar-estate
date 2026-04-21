@@ -5,8 +5,6 @@ const Inquiry = require("../models/Inquiry");
 const SavedSearch = require("../models/SavedSearch");
 const auth = require("../middleware/auth");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
 const nodemailer = require("nodemailer");
 
 const escapeRegex = (value = "") =>
@@ -29,25 +27,30 @@ const applyNumberFilter = (query, field, minValue, maxValue) => {
   if (max !== null) query[field].$lte = max;
 };
 
-// Multer setup
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = "uploads/";
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    cb(null, dir);
+const fileToDataUrl = (file) =>
+  `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+
+// Vercel/serverless filesystems are not persistent, so image uploads are kept
+// with the property record instead of being written to /uploads.
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    files: 10,
+    fileSize: 5 * 1024 * 1024,
   },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname.replace(/\s+/g, ""));
+  fileFilter(req, file, cb) {
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("Only image uploads are allowed"));
+    }
+
+    return cb(null, true);
   },
 });
-const upload = multer({ storage });
 
 // Create a property (auth required)
 router.post("/", auth, upload.array("images", 10), async (req, res) => {
   try {
-    const imagePaths = req.files
-      ? req.files.map((f) => `/uploads/${f.filename}`)
-      : [];
+    const imagePaths = req.files ? req.files.map(fileToDataUrl) : [];
     const property = new Property({
       ...req.body,
       images: imagePaths,
@@ -386,7 +389,7 @@ router.put("/:id", auth, upload.array("images", 10), async (req, res) => {
   try {
     let update = { ...req.body };
     if (req.files && req.files.length > 0) {
-      update.images = req.files.map((f) => `/uploads/${f.filename}`);
+      update.images = req.files.map(fileToDataUrl);
     }
     const property = await Property.findOneAndUpdate(
       { _id: req.params.id, listedBy: req.user._id },

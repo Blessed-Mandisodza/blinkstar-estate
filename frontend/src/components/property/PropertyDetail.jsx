@@ -28,6 +28,8 @@ import {
   Edit,
   Email,
   EventAvailable,
+  Favorite,
+  FavoriteBorder,
   HomeWork,
   KingBed,
   LocationOn,
@@ -52,7 +54,9 @@ const FALLBACK_CONTACT = {
 
 const getImageUrl = (img) => {
   if (!img) return "";
-  if (img.startsWith("http")) return img;
+  if (img.startsWith("http") || img.startsWith("data:") || img.startsWith("blob:")) {
+    return img;
+  }
   return resolveMediaUrl(img.startsWith("/uploads") ? img : `/uploads/${img}`);
 };
 
@@ -140,6 +144,7 @@ const PropertyDetail = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [contactIntent, setContactIntent] = useState("general");
   const [shareMessage, setShareMessage] = useState("");
+  const [isFavorite, setIsFavorite] = useState(false);
   const contactSectionRef = useRef(null);
   const agentCardRef = useRef(null);
   const [agentCardHeight, setAgentCardHeight] = useState(null);
@@ -207,6 +212,22 @@ const PropertyDetail = () => {
       })
       .catch(() => setSimilarProperties([]));
   }, [property?._id, property?.propertyType]);
+
+  useEffect(() => {
+    if (!user || !property?._id) {
+      setIsFavorite(false);
+      return;
+    }
+
+    authFetch("/api/auth/favorites")
+      .then((res) => res.json())
+      .then((data) => {
+        setIsFavorite(
+          Boolean(data.favorites?.some((item) => item._id === property._id))
+        );
+      })
+      .catch(() => setIsFavorite(false));
+  }, [property?._id, user]);
 
   useEffect(() => {
     if (isMobile) {
@@ -313,6 +334,21 @@ const PropertyDetail = () => {
         setShareMessage("Share unavailable");
         window.setTimeout(() => setShareMessage(""), 2200);
       }
+    }
+  };
+
+  const handleFavorite = async () => {
+    if (!user) {
+      navigate("/signin");
+      return;
+    }
+
+    const res = await authFetch(`/api/auth/favorites/${property._id}`, {
+      method: "POST",
+    });
+
+    if (res.ok) {
+      setIsFavorite((current) => !current);
     }
   };
 
@@ -423,6 +459,11 @@ const PropertyDetail = () => {
           </Box>
 
           <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+            <Tooltip title={isFavorite ? "Remove saved property" : "Save property"}>
+              <IconButton onClick={handleFavorite} aria-label="save property">
+                {isFavorite ? <Favorite color="error" /> : <FavoriteBorder />}
+              </IconButton>
+            </Tooltip>
             <Tooltip title={shareMessage || "Share property"}>
               <IconButton onClick={handleShare} aria-label="share property">
                 <Share />

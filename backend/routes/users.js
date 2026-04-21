@@ -7,7 +7,10 @@ const bcrypt = require("bcryptjs");
 
 router.get("/agents", async (req, res) => {
   try {
-    const agents = await User.find({ role: { $in: ["agent", "admin"] } })
+    const ownerIds = await Property.distinct("listedBy");
+    const agents = await User.find({
+      $or: [{ role: { $in: ["agent", "admin"] } }, { _id: { $in: ownerIds } }],
+    })
       .select("name email phone whatsapp bio location avatarUrl role createdAt")
       .sort({ createdAt: -1 });
 
