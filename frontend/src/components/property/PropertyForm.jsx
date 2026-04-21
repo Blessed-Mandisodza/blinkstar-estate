@@ -19,6 +19,56 @@ const initialState = {
   longitude: '',
 };
 
+const compressImageFile = (file) =>
+  new Promise((resolve) => {
+    if (!file.type.startsWith('image/') || file.size <= 450 * 1024) {
+      resolve(file);
+      return;
+    }
+
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      const maxSize = 1400;
+      const scale = Math.min(1, maxSize / image.width, maxSize / image.height);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+
+      const context = canvas.getContext('2d');
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(objectUrl);
+
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+
+          const nextName = file.name.replace(/\.[^.]+$/, '') || 'property';
+          const compressedFile = new File([blob], `${nextName}.jpg`, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+
+          resolve(compressedFile.size < file.size ? compressedFile : file);
+        },
+        'image/jpeg',
+        0.68
+      );
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+
+    image.src = objectUrl;
+  });
+
 const PropertyForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -67,8 +117,9 @@ const PropertyForm = () => {
     setError('');
     const formData = new FormData();
     Object.entries(form).forEach(([key, value]) => formData.append(key, value));
-    selectedFiles.forEach(file => formData.append('images', file));
     try {
+      const uploadFiles = await Promise.all(selectedFiles.map(compressImageFile));
+      uploadFiles.forEach(file => formData.append('images', file));
       const res = await authFetch(id ? `/api/property/${id}` : '/api/property', {
         method: id ? 'PUT' : 'POST',
         body: formData,
