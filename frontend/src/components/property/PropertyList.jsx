@@ -7,21 +7,67 @@ import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied
 import Loader from "../ui/Loader";
 import { apiFetch, authFetch } from "../../utils/authFetch";
 
+const queryKeys = [
+  "search",
+  "type",
+  "location",
+  "minPrice",
+  "maxPrice",
+  "minBedrooms",
+  "minBathrooms",
+  "minArea",
+  "maxArea",
+  "sort",
+  "status",
+  "furnished",
+];
+
+const buildPropertyQuery = (filters) => {
+  const params = new URLSearchParams();
+
+  queryKeys.forEach((key) => {
+    const value = filters[key];
+    if (!value) return;
+    params.set(key, value);
+  });
+
+  return params.toString();
+};
+
 const PropertyList = ({ filters = {} }) => {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [favorites, setFavorites] = useState([]);
   const { user } = useAuth();
 
   useEffect(() => {
-    apiFetch("/api/property")
-      .then((res) => res.json())
-      .then((data) => {
-        setProperties(data);
-        setLoading(false);
+    const controller = new AbortController();
+    const query = buildPropertyQuery(filters);
+    const endpoint = query ? `/api/property?${query}` : "/api/property";
+
+    setLoading(true);
+    setError("");
+
+    apiFetch(endpoint, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load properties");
+        return res.json();
       })
-      .catch(() => setLoading(false));
-  }, []);
+      .then((data) => {
+        setProperties(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        setError(err.message || "Failed to load properties");
+        setProperties([]);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [filters]);
 
   useEffect(() => {
     if (user) {
@@ -44,31 +90,6 @@ const PropertyList = ({ filters = {} }) => {
     }
   };
 
-  const filtered = properties.filter((property) => {
-    const search = filters.search?.toLowerCase() || "";
-    const matchesSearch =
-      property.title.toLowerCase().includes(search) ||
-      property.location.toLowerCase().includes(search);
-    const matchesType =
-      !filters.type ||
-      (["rent", "sale"].includes(property.propertyType) &&
-        property.propertyType === filters.type);
-    const matchesMinPrice =
-      !filters.minPrice || property.price >= Number(filters.minPrice);
-    const matchesMaxPrice =
-      !filters.maxPrice || property.price <= Number(filters.maxPrice);
-    const matchesLocation =
-      !filters.location ||
-      property.location.toLowerCase().includes(filters.location.toLowerCase());
-    return (
-      matchesSearch &&
-      matchesType &&
-      matchesMinPrice &&
-      matchesMaxPrice &&
-      matchesLocation
-    );
-  });
-
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" py={8}>
@@ -77,7 +98,18 @@ const PropertyList = ({ filters = {} }) => {
     );
   }
 
-  if (filtered.length === 0) {
+  if (error) {
+    return (
+      <Box textAlign="center" py={8} color="error.main">
+        <Typography variant="h5" fontWeight={600} mb={1}>
+          Could not load properties
+        </Typography>
+        <Typography variant="body1">{error}</Typography>
+      </Box>
+    );
+  }
+
+  if (properties.length === 0) {
     return (
       <Box textAlign="center" py={8} color="text.secondary">
         <SentimentDissatisfiedIcon sx={{ fontSize: 60, mb: 2 }} />
@@ -93,7 +125,7 @@ const PropertyList = ({ filters = {} }) => {
 
   return (
     <Grid container spacing={4}>
-      {filtered.map((property) => (
+      {properties.map((property) => (
         <Grid item xs={12} sm={6} md={4} lg={3} key={property._id}>
           <Link
             to={`/property/${property._id}`}

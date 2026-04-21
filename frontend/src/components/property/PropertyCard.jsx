@@ -46,11 +46,14 @@ const PropertyCard = ({ property, isFavorite, onFavoriteToggle }) => {
   return (
     <Card
       sx={{
-        borderRadius: 3,
-        boxShadow: 3,
+        borderRadius: 2,
+        boxShadow: "0 10px 28px rgba(15, 23, 42, 0.12)",
         position: "relative",
-        overflow: "visible",
+        overflow: "hidden",
+        height: "100%",
         minHeight: 370,
+        display: "flex",
+        flexDirection: "column",
         cursor: "pointer",
         transition: "all 0.3s ease",
         "&:hover": {
@@ -69,9 +72,8 @@ const PropertyCard = ({ property, isFavorite, onFavoriteToggle }) => {
           )}
           alt={property.title || "Property"}
           sx={{
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
             objectFit: "cover",
+            bgcolor: "grey.100",
           }}
         />
         {property.status && (
@@ -97,7 +99,11 @@ const PropertyCard = ({ property, isFavorite, onFavoriteToggle }) => {
                 top: 12,
                 right: 12,
                 color: "red",
+                backgroundColor: "rgba(255, 255, 255, 0.9)",
                 zIndex: 2,
+                "&:hover": {
+                  backgroundColor: "rgba(255, 255, 255, 1)",
+                },
               }}
             >
               {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
@@ -105,20 +111,45 @@ const PropertyCard = ({ property, isFavorite, onFavoriteToggle }) => {
           </Tooltip>
         )}
       </Box>
-      <CardContent>
-        <Typography variant="h6" fontWeight={700} gutterBottom noWrap>
+      <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <Typography
+          variant="h6"
+          fontWeight={700}
+          gutterBottom
+          sx={{
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: 2,
+            overflow: "hidden",
+            minHeight: 56,
+          }}
+        >
           {property.title}
         </Typography>
         <Stack direction="row" alignItems="center" spacing={1} mb={1}>
           <LocationOnIcon fontSize="small" color="action" />
-          <Typography variant="body2" color="text.secondary" noWrap>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
             {property.location}
           </Typography>
         </Stack>
         <Typography variant="h5" color="primary" fontWeight={700} mb={1}>
           {formatPrice(property.price)}
         </Typography>
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          sx={{ flexWrap: "wrap", rowGap: 0.75 }}
+        >
           <Stack direction="row" spacing={0.5} alignItems="center">
             <HotelIcon fontSize="small" />
             <Typography variant="body2">
@@ -143,6 +174,7 @@ const PropertyCard = ({ property, isFavorite, onFavoriteToggle }) => {
               background: "#f5f7fa",
               borderRadius: 2,
               border: "1px solid #e0e0e0",
+              overflowWrap: "anywhere",
             }}
           >
             <Typography

@@ -23,17 +23,28 @@ import {
   useTheme,
   useMediaQuery,
   Button,
+  Chip,
+  Alert,
+  Stack,
+  TextField,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   Home as HomeIcon,
   Person as PersonIcon,
+  Favorite as FavoriteIcon,
+  Map as MapIcon,
+  Calculate as CalculateIcon,
+  SavedSearch as SavedSearchIcon,
+  Groups as GroupsIcon,
   Notifications as NotificationsIcon,
   Message as MessageIcon,
   Settings as SettingsIcon,
   Logout as LogoutIcon,
 } from "@mui/icons-material";
+import AddHomeWorkIcon from "@mui/icons-material/AddHomeWork";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { styled } from "@mui/material/styles";
 import bsLogo from "../../bs.png";
 import { useAuth } from "../../context/AuthContext";
@@ -48,12 +59,17 @@ const drawerWidth = 240;
 const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
   ({ theme, open }) => ({
     flexGrow: 1,
+    minHeight: "100vh",
     padding: theme.spacing(3),
+    background: "#f6f8fb",
     transition: theme.transitions.create("margin", {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
     }),
     marginLeft: 0,
+    [theme.breakpoints.down("sm")]: {
+      padding: theme.spacing(2),
+    },
     ...(open && {
       transition: theme.transitions.create("margin", {
         easing: theme.transitions.easing.easeOut,
@@ -67,8 +83,8 @@ const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
 const StyledAppBar = styled(AppBar, {
   shouldForwardProp: (prop) => prop !== "open",
 })(({ theme, open }) => ({
-  background: "#000", // Materially blue
-  boxShadow: "0 2px 8px 0 rgba(0,0,0,0.08)",
+  background: "#0b1220",
+  boxShadow: "0 10px 30px rgba(15, 23, 42, 0.18)",
   transition: theme.transitions.create(["margin", "width"], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -88,20 +104,44 @@ const StatsCard = styled(Card)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-between",
-  padding: theme.spacing(2),
-  transition: "transform 0.3s ease-in-out",
+  borderRadius: 12,
+  border: "1px solid #e5e7eb",
+  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.08)",
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
   "&:hover": {
-    transform: "translateY(-5px)",
+    transform: "translateY(-3px)",
+    boxShadow: "0 16px 36px rgba(15, 23, 42, 0.12)",
   },
 }));
 
 const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/dashboard" },
   { text: "Properties", icon: <HomeIcon />, path: "/properties" },
+  { text: "Saved Properties", icon: <FavoriteIcon />, path: "/favorites" },
+  { text: "Saved Searches", icon: <SavedSearchIcon />, path: "/saved-searches" },
+  { text: "Map", icon: <MapIcon />, path: "/map" },
+  { text: "Mortgage", icon: <CalculateIcon />, path: "/mortgage" },
+  { text: "Agents", icon: <GroupsIcon />, path: "/agents" },
   { text: "Profile", icon: <PersonIcon />, path: "/profile" },
   { text: "Messages", icon: <MessageIcon />, path: "/messages" },
   { text: "Settings", icon: <SettingsIcon />, path: "/settings" },
 ];
+
+const formatInquiryDate = (date) => {
+  if (!date) return "";
+  return new Date(date).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+const formatInquirySource = (source = "contact_form") =>
+  source
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const leadStatusOptions = ["New", "Contacted", "Closed", "Archived"];
 
 export default function Dashboard() {
   const [open, setOpen] = useState(false);
@@ -112,6 +152,9 @@ export default function Dashboard() {
   const { user: authUser } = useAuth();
   const [user, setUser] = useState(null);
   const [properties, setProperties] = useState([]);
+  const [inquiries, setInquiries] = useState([]);
+  const [savingLeadId, setSavingLeadId] = useState("");
+  const [leadError, setLeadError] = useState("");
   const [stats, setStats] = useState({
     totalProperties: 0,
     activeListings: 0,
@@ -136,6 +179,12 @@ export default function Dashboard() {
         const statsRes = await authFetch(`/api/property/stats/${userData._id}`);
         const statsData = await statsRes.json();
         setStats(statsData);
+        // Fetch recent enquiries
+        const inquiryRes = await authFetch("/api/property/inquiries?limit=12");
+        if (inquiryRes.ok) {
+          const inquiryData = await inquiryRes.json();
+          setInquiries(inquiryData.inquiries || []);
+        }
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
       }
@@ -171,6 +220,43 @@ export default function Dashboard() {
     navigate(path);
     if (isMobile) {
       setOpen(false);
+    }
+  };
+
+  const updateInquiryLocal = (inquiryId, changes) => {
+    setInquiries((current) =>
+      current.map((inquiry) =>
+        inquiry._id === inquiryId ? { ...inquiry, ...changes } : inquiry
+      )
+    );
+  };
+
+  const saveInquiry = async (inquiryId, changes) => {
+    setSavingLeadId(inquiryId);
+    setLeadError("");
+
+    try {
+      const res = await authFetch(`/api/property/inquiries/${inquiryId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(changes),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update inquiry");
+      }
+
+      setInquiries((current) =>
+        current.map((inquiry) =>
+          inquiry._id === inquiryId ? data.inquiry : inquiry
+        )
+      );
+    } catch (err) {
+      setLeadError(err.message || "Failed to update inquiry");
+    } finally {
+      setSavingLeadId("");
     }
   };
 
@@ -324,26 +410,90 @@ export default function Dashboard() {
 
       <Main open={open}>
         <Toolbar /> {/* Spacing for AppBar */}
-        {loading ? (
-          <Loader size="large" />
-        ) : (
-          <>
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h4" sx={{ mb: 2 }}>
-                Welcome back,{" "}
-                {user?.name || user?.email?.split("@")[0] || "User"}!
-              </Typography>
-              <Grid container spacing={3}>
+        <Box
+          sx={{
+            width: "100%",
+            maxWidth: 1280,
+            ml: 0,
+            mr: "auto",
+            pt: { xs: 2, md: 3 },
+            pb: 5,
+          }}
+        >
+          {loading ? (
+            <Box
+              sx={{
+                minHeight: "55vh",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Loader size="large" />
+            </Box>
+          ) : (
+            <>
+              <Box
+                sx={{
+                  mb: 4,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: { xs: "flex-start", sm: "center" },
+                  flexDirection: { xs: "column", sm: "row" },
+                  gap: 2,
+                }}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 800,
+                      color: "#0f172a",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    Welcome back,{" "}
+                    {user?.name || user?.email?.split("@")[0] || "User"}
+                  </Typography>
+                  <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                    {formatInquiryDate(new Date())}
+                  </Typography>
+                </Box>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AddHomeWorkIcon />}
+                  onClick={() => navigate("/property/add")}
+                  sx={{
+                    width: { xs: "100%", sm: "auto" },
+                    fontWeight: 700,
+                    px: 3,
+                  }}
+                >
+                  Add Property
+                </Button>
+              </Box>
+
+              <Grid container spacing={2.5} sx={{ mb: 4 }}>
                 {statsData.map((stat) => (
                   <Grid item xs={12} sm={6} md={3} key={stat.title}>
                     <StatsCard>
-                      <CardContent>
-                        <Typography variant="h6" gutterBottom>
+                      <CardContent sx={{ p: 2.5 }}>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontWeight: 700, mb: 1 }}
+                        >
                           {stat.title}
                         </Typography>
                         <Typography
                           variant="h3"
-                          sx={{ color: stat.color, fontWeight: "bold" }}
+                          sx={{
+                            color: stat.color,
+                            fontWeight: 900,
+                            lineHeight: 1,
+                            fontSize: { xs: "2rem", md: "2.4rem" },
+                          }}
                         >
                           {stat.value}
                         </Typography>
@@ -352,6 +502,210 @@ export default function Dashboard() {
                   </Grid>
                 ))}
               </Grid>
+
+            {/* Lead Inbox Section */}
+            <Box sx={{ mb: 4 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: { xs: "flex-start", sm: "center" },
+                  flexDirection: { xs: "column", sm: "row" },
+                  gap: 1.5,
+                  mb: 2,
+                }}
+              >
+                <Box>
+                  <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                    Lead Inbox
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {inquiries.length} recent lead
+                    {inquiries.length === 1 ? "" : "s"}
+                  </Typography>
+                </Box>
+                <Button
+                  variant="outlined"
+                  startIcon={<RefreshIcon />}
+                  onClick={async () => {
+                    try {
+                      const inquiryRes = await authFetch(
+                        "/api/property/inquiries?limit=12"
+                      );
+                      const inquiryData = await inquiryRes.json();
+                      setInquiries(inquiryData.inquiries || []);
+                    } catch (err) {
+                      setLeadError("Could not refresh enquiries");
+                    }
+                  }}
+                >
+                  Refresh
+                </Button>
+              </Box>
+              {leadError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {leadError}
+                </Alert>
+              )}
+              {inquiries.length === 0 ? (
+                <Card sx={{ borderRadius: 2, border: "1px solid #e5e7eb" }}>
+                  <CardContent>
+                    <Typography sx={{ textAlign: "center", color: "#777" }}>
+                      No leads yet.
+                    </Typography>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Grid container spacing={3}>
+                  {inquiries.map((inquiry) => (
+                    <Grid item xs={12} md={6} lg={4} key={inquiry._id}>
+                      <Card
+                        sx={{
+                          height: "100%",
+                          borderRadius: 2,
+                          border: "1px solid #e5e7eb",
+                          boxShadow: "0 10px 24px rgba(15, 23, 42, 0.08)",
+                          display: "flex",
+                          flexDirection: "column",
+                        }}
+                      >
+                        <CardContent>
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            sx={{ mb: 1, flexWrap: "wrap", rowGap: 1 }}
+                          >
+                            <Chip
+                              label={formatInquirySource(inquiry.source)}
+                              size="small"
+                              color={
+                                inquiry.source === "whatsapp"
+                                  ? "success"
+                                  : "primary"
+                              }
+                            />
+                            <Chip label={inquiry.status} size="small" />
+                          </Stack>
+                          <Typography
+                            variant="h6"
+                            fontWeight={700}
+                            sx={{
+                              display: "-webkit-box",
+                              WebkitBoxOrient: "vertical",
+                              WebkitLineClamp: 2,
+                              overflow: "hidden",
+                            }}
+                          >
+                            {inquiry.property?.title || "Property inquiry"}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ overflowWrap: "anywhere" }}
+                          >
+                            {inquiry.name || "Website Visitor"}
+                            {inquiry.phone ? ` | ${inquiry.phone}` : ""}
+                            {inquiry.email ? ` | ${inquiry.email}` : ""}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              mt: 1,
+                              display: "-webkit-box",
+                              WebkitBoxOrient: "vertical",
+                              WebkitLineClamp: 2,
+                              overflow: "hidden",
+                            }}
+                          >
+                            {inquiry.message || "Contact action recorded."}
+                          </Typography>
+                          <TextField
+                            select
+                            size="small"
+                            label="Status"
+                            value={inquiry.status || "New"}
+                            fullWidth
+                            sx={{ mt: 2 }}
+                            onChange={(event) => {
+                              const status = event.target.value;
+                              updateInquiryLocal(inquiry._id, { status });
+                              saveInquiry(inquiry._id, { status });
+                            }}
+                          >
+                            {leadStatusOptions.map((status) => (
+                              <MenuItem key={status} value={status}>
+                                {status}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                          <TextField
+                            size="small"
+                            label="Follow-up notes"
+                            value={inquiry.followUpNotes || ""}
+                            fullWidth
+                            multiline
+                            minRows={2}
+                            sx={{ mt: 2 }}
+                            onChange={(event) =>
+                              updateInquiryLocal(inquiry._id, {
+                                followUpNotes: event.target.value,
+                              })
+                            }
+                            onBlur={(event) =>
+                              saveInquiry(inquiry._id, {
+                                followUpNotes: event.target.value,
+                              })
+                            }
+                          />
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            sx={{ mt: 2, flexWrap: "wrap", rowGap: 1 }}
+                          >
+                            {inquiry.phone && (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                href={`tel:${inquiry.phone}`}
+                              >
+                                Call
+                              </Button>
+                            )}
+                            {inquiry.email && (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                href={`mailto:${inquiry.email}`}
+                              >
+                                Email
+                              </Button>
+                            )}
+                            {inquiry.pageUrl && (
+                              <Button
+                                size="small"
+                                variant="text"
+                                href={inquiry.pageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                View
+                              </Button>
+                            )}
+                          </Stack>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", mt: 1.5 }}
+                          >
+                            {formatInquiryDate(inquiry.createdAt)}
+                            {savingLeadId === inquiry._id ? " | Saving..." : ""}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
             </Box>
 
             {/* Recent Properties Section */}
@@ -360,15 +714,27 @@ export default function Dashboard() {
                 sx={{
                   display: "flex",
                   justifyContent: "space-between",
-                  alignItems: "center",
+                  alignItems: { xs: "flex-start", sm: "center" },
+                  flexDirection: { xs: "column", sm: "row" },
+                  gap: 1.5,
                   mb: 2,
                 }}
               >
-                <Typography variant="h5">Your Properties</Typography>
+                <Box>
+                  <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                    Your Properties
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {properties.length} listing
+                    {properties.length === 1 ? "" : "s"}
+                  </Typography>
+                </Box>
                 <Button
                   variant="contained"
                   color="primary"
+                  startIcon={<AddHomeWorkIcon />}
                   onClick={() => navigate("/property/add")}
+                  sx={{ width: { xs: "100%", sm: "auto" }, fontWeight: 700 }}
                 >
                   Add Property
                 </Button>
@@ -376,9 +742,13 @@ export default function Dashboard() {
               <Grid container spacing={3}>
                 {properties.length === 0 ? (
                   <Grid item xs={12}>
-                    <Typography sx={{ textAlign: "center", color: "#999" }}>
-                      No properties listed yet.
-                    </Typography>
+                    <Card sx={{ borderRadius: 2, border: "1px solid #e5e7eb" }}>
+                      <CardContent>
+                        <Typography sx={{ textAlign: "center", color: "#777" }}>
+                          No properties listed yet.
+                        </Typography>
+                      </CardContent>
+                    </Card>
                   </Grid>
                 ) : (
                   properties.map((property) => (
@@ -420,8 +790,9 @@ export default function Dashboard() {
                 )}
               </Grid>
             </Box>
-          </>
-        )}
+            </>
+          )}
+        </Box>
       </Main>
 
       <Menu

@@ -25,8 +25,9 @@ import { useAuth } from "../../context/AuthContext";
 const navLinks = [
   { label: "Home", path: "/" },
   { label: "Properties", path: "/properties" },
-  { label: "About", path: "/about" },
-  { label: "Contact", path: "/contact" },
+  { label: "Map", path: "/map" },
+  { label: "Mortgage", path: "/mortgage" },
+  { label: "Agents", path: "/agents" },
 ];
 
 const Header = () => {
@@ -119,6 +120,15 @@ const Header = () => {
                     </>
                   ) : user ? (
                     <>
+                      <ListItem button onClick={() => handleNav("/favorites")}>
+                        <ListItemText primary="Saved Properties" />
+                      </ListItem>
+                      <ListItem
+                        button
+                        onClick={() => handleNav("/saved-searches")}
+                      >
+                        <ListItemText primary="Saved Searches" />
+                      </ListItem>
                       <ListItem button onClick={handleProfile}>
                         <ListItemText primary="Profile" />
                       </ListItem>
@@ -170,13 +180,22 @@ const Header = () => {
                 </Button>
               ))}
               {user && (
-                <Button
-                  color="inherit"
-                  onClick={handleProfile}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Profile
-                </Button>
+                <>
+                  <Button
+                    color="inherit"
+                    onClick={() => navigate("/favorites")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Saved
+                  </Button>
+                  <Button
+                    color="inherit"
+                    onClick={() => navigate("/saved-searches")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Alerts
+                  </Button>
+                </>
               )}
             </Box>
             <Box display="flex" alignItems="center" gap={2}>

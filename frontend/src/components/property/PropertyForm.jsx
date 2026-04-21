@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Box, TextField, Button, Typography, Grid, CircularProgress, Paper, Divider } from '@mui/material';
+import { Box, TextField, Button, Typography, Grid, CircularProgress, Paper, Divider, MenuItem } from '@mui/material';
 import { apiFetch, authFetch, resolveMediaUrl } from '../../utils/authFetch';
 import 'leaflet/dist/leaflet.css';
 
@@ -10,9 +10,13 @@ const initialState = {
   price: '',
   location: '',
   propertyType: '',
+  status: 'Available',
+  furnished: '',
   bedrooms: '',
   bathrooms: '',
   area: '',
+  latitude: '',
+  longitude: '',
 };
 
 const PropertyForm = () => {
@@ -35,9 +39,13 @@ const PropertyForm = () => {
             price: data.price || '',
             location: data.location || '',
             propertyType: data.propertyType || '',
+            status: data.status || 'Available',
+            furnished: data.furnished || '',
             bedrooms: data.bedrooms || '',
             bathrooms: data.bathrooms || '',
             area: data.area || '',
+            latitude: data.latitude || '',
+            longitude: data.longitude || '',
           });
           setExistingImages(data.images || []);
           setLoading(false);
@@ -126,6 +134,20 @@ const PropertyForm = () => {
               <TextField label="Property Type" name="propertyType" value={form.propertyType} onChange={handleChange} fullWidth required helperText="e.g. Apartment, House" />
             </Grid>
             <Grid item xs={6}>
+              <TextField select label="Status" name="status" value={form.status} onChange={handleChange} fullWidth>
+                {['Available', 'For Sale', 'For Rent', 'Sold', 'Rented', 'Pending'].map(status => (
+                  <MenuItem key={status} value={status}>{status}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={6}>
+              <TextField select label="Furnished" name="furnished" value={form.furnished} onChange={handleChange} fullWidth>
+                {['', 'Furnished', 'Unfurnished', 'Partly Furnished'].map(value => (
+                  <MenuItem key={value || 'none'} value={value}>{value || 'Not specified'}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={6}>
               <TextField label="Area (sq ft)" name="area" value={form.area} onChange={handleChange} fullWidth required type="number" helperText="e.g. 2000" />
             </Grid>
             <Grid item xs={6}>
@@ -133,6 +155,12 @@ const PropertyForm = () => {
             </Grid>
             <Grid item xs={6}>
               <TextField label="Bathrooms" name="bathrooms" value={form.bathrooms} onChange={handleChange} fullWidth required type="number" helperText="e.g. 2" />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField label="Latitude" name="latitude" value={form.latitude} onChange={handleChange} fullWidth type="number" helperText="For map view" />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField label="Longitude" name="longitude" value={form.longitude} onChange={handleChange} fullWidth type="number" helperText="For map view" />
             </Grid>
             <Grid item xs={12}>
               <Button type="submit" variant="contained" color="primary" fullWidth sx={{ py: 2, fontWeight: 700, fontSize: '1.1rem', mt: 2 }}>
