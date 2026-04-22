@@ -36,14 +36,14 @@ export const AuthProvider = ({ children }) => {
     window.location.href = "/";
   }, []);
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
   const updateUser = useCallback((userData) => {
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
   }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <AuthContext.Provider value={{ user, login, logout, setUser: updateUser }}>
