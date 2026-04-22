@@ -5,6 +5,17 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+html,
+#root {
+  min-height: 100%;
+  width: 100%;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 code {
