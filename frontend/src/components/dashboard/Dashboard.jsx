@@ -149,7 +149,7 @@ export default function Dashboard() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const navigate = useNavigate();
-  const { user: authUser } = useAuth();
+  const { user: authUser, logout } = useAuth();
   const [user, setUser] = useState(null);
   const [properties, setProperties] = useState([]);
   const [inquiries, setInquiries] = useState([]);
@@ -213,7 +213,7 @@ export default function Dashboard() {
 
   const handleLogout = () => {
     handleProfileMenuClose();
-    // Add logout logic here
+    logout();
   };
 
   const handleMenuItemClick = (path) => {
@@ -355,7 +355,7 @@ export default function Dashboard() {
                 noWrap
                 sx={{ fontWeight: 700, letterSpacing: 1 }}
               >
-                BlinkStar
+                BlinkStar Properties
               </Typography>
             </Box>
           </Box>
@@ -801,13 +801,13 @@ export default function Dashboard() {
         onClose={handleProfileMenuClose}
         onClick={handleProfileMenuClose}
       >
-        <MenuItem onClick={handleProfileMenuClose}>
+        <MenuItem onClick={() => navigate("/profile")}>
           <ListItemIcon>
             <PersonIcon fontSize="small" />
           </ListItemIcon>
           Profile
         </MenuItem>
-        <MenuItem onClick={handleProfileMenuClose}>
+        <MenuItem onClick={() => navigate("/settings")}>
           <ListItemIcon>
             <SettingsIcon fontSize="small" />
           </ListItemIcon>

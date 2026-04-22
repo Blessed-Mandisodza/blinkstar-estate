@@ -93,6 +93,7 @@ const PropertyCard = ({ property, isFavorite, onFavoriteToggle }) => {
             <IconButton
               aria-label="favorite"
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 onFavoriteToggle();
               }}

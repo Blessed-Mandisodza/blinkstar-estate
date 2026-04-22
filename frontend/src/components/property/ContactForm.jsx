@@ -48,7 +48,7 @@ const ContactForm = ({
     preferredTime: "",
     message: "",
   });
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -93,7 +93,7 @@ const ContactForm = ({
     e.preventDefault();
     setLoading(true);
     setError("");
-    setSuccess(false);
+    setSuccess("");
     try {
       const pageUrl = typeof window !== "undefined" ? window.location.href : "";
       const res = await apiFetch("/api/property/contact", {
@@ -106,11 +106,15 @@ const ContactForm = ({
           pageUrl,
         }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || "Failed to send message");
       }
-      setSuccess(true);
+      setSuccess(
+        data.warning
+          ? "Your inquiry was saved. We will follow up soon."
+          : "Your inquiry has been sent."
+      );
       setForm((current) => ({
         ...current,
         name: "",
@@ -139,7 +143,7 @@ const ContactForm = ({
       )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }}>
-          Your inquiry has been sent.
+          {success}
         </Alert>
       )}
       {error && (

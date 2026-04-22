@@ -1,12 +1,36 @@
 import React, { useState, useEffect } from "react";
-import { Box, Container, Typography, Grid, Button } from "@mui/material";
+import {
+  Box,
+  Button,
+  Container,
+  Grid,
+  Paper,
+  Skeleton,
+  Typography,
+} from "@mui/material";
 import { ArrowForward } from "@mui/icons-material";
 import PropertyCard from "../property/PropertyCard";
-import Loader from "./Loader";
-import { apiFetch } from "../../utils/authFetch";
+import { useAuth } from "../../context/AuthContext";
+import { apiFetch, authFetch } from "../../utils/authFetch";
+
+const guestFavoritesKey = "guestFavorites";
+
+const readGuestFavorites = () => {
+  try {
+    return JSON.parse(localStorage.getItem(guestFavoritesKey) || "[]");
+  } catch {
+    return [];
+  }
+};
+
+const writeGuestFavorites = (favorites) => {
+  localStorage.setItem(guestFavoritesKey, JSON.stringify(favorites));
+};
 
 export default function FeaturedProperties() {
+  const { user } = useAuth();
   const [properties, setProperties] = useState([]);
+  const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -33,19 +57,88 @@ export default function FeaturedProperties() {
     fetchRecentProperties();
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      authFetch("/api/auth/favorites")
+        .then((res) => res.json())
+        .then((data) =>
+          setFavorites(
+            data.favorites?.map((f) => (typeof f === "string" ? f : f._id)) || []
+          )
+        )
+        .catch(() => setFavorites([]));
+    } else {
+      setFavorites(readGuestFavorites());
+    }
+  }, [user]);
+
+  const toggleFavorite = async (propertyId) => {
+    if (!user) {
+      setFavorites((current) => {
+        const next = current.includes(propertyId)
+          ? current.filter((id) => id !== propertyId)
+          : [...current, propertyId];
+        writeGuestFavorites(next);
+        return next;
+      });
+      return;
+    }
+
+    const res = await authFetch(`/api/auth/favorites/${propertyId}`, {
+      method: "POST",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setFavorites(data.favorites);
+    }
+  };
+
   if (loading) {
     return (
       <Box
         sx={{
           py: { xs: 4, sm: 6, md: 8 },
           backgroundColor: "background.default",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "300px",
         }}
       >
-        <Loader size="large" />
+        <Container maxWidth="lg">
+          <Box sx={{ textAlign: "center", mb: { xs: 4, md: 5 } }}>
+            <Skeleton
+              variant="text"
+              width={260}
+              height={52}
+              sx={{ mx: "auto" }}
+            />
+            <Skeleton
+              variant="text"
+              width={320}
+              height={28}
+              sx={{ mx: "auto", maxWidth: "80%" }}
+            />
+          </Box>
+          <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Grid item xs={12} sm={6} md={3} key={index}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    borderRadius: 2,
+                    overflow: "hidden",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  <Skeleton variant="rectangular" height={180} />
+                  <Box sx={{ p: 2 }}>
+                    <Skeleton variant="text" height={30} />
+                    <Skeleton variant="text" width="70%" />
+                    <Skeleton variant="text" width="45%" height={32} />
+                    <Skeleton variant="text" width="60%" />
+                  </Box>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
       </Box>
     );
   }
@@ -154,7 +247,11 @@ export default function FeaturedProperties() {
                     maxWidth: { xs: "400px", sm: "100%" },
                   }}
                 >
-                  <PropertyCard property={property} />
+                  <PropertyCard
+                    property={property}
+                    isFavorite={favorites.includes(property._id)}
+                    onFavoriteToggle={() => toggleFavorite(property._id)}
+                  />
                 </Box>
               </Grid>
             ))}

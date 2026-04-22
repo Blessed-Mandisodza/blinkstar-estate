@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
 const User = require("../models/User");
+const Property = require("../models/Property");
 const crypto = require("crypto");
 const auth = require("../middleware/auth");
 
@@ -183,8 +184,24 @@ router.post("/favorites/:propertyId", auth, async (req, res) => {
 
 router.get("/favorites", auth, async (req, res) => {
   try {
-    await req.user.populate("favorites");
-    res.json({ favorites: req.user.favorites });
+    const favoriteIds = req.user.favorites || [];
+    const favoriteOrder = new Map(
+      favoriteIds.map((id, index) => [id.toString(), index])
+    );
+    const favorites = await Property.find({ _id: { $in: favoriteIds } })
+      .select(
+        "title price location images imageUrl propertyType status bedrooms bathrooms area createdAt"
+      )
+      .slice("images", 1)
+      .lean();
+
+    favorites.sort(
+      (a, b) =>
+        (favoriteOrder.get(a._id.toString()) ?? 0) -
+        (favoriteOrder.get(b._id.toString()) ?? 0)
+    );
+
+    res.json({ favorites });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

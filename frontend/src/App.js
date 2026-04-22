@@ -6,6 +6,7 @@ import SignIn from "./components/sign/SignIn";
 import SignUp from "./components/sign/SignUp";
 import Dashboard from "./components/dashboard/Dashboard";
 import Profile from "./components/dashboard/Profile";
+import Settings from "./components/dashboard/Settings";
 import PrivateRoute from "./components/auth/PrivateRoute";
 import { AuthProvider } from "./context/AuthContext";
 import Properties from "./components/ui/Properties";
@@ -46,6 +47,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <Profile />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <PrivateRoute>
+                  <Settings />
                 </PrivateRoute>
               }
             />

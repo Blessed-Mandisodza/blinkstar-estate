@@ -3,8 +3,8 @@ import { Box } from "@mui/material";
 import { Parallax } from "react-parallax";
 import Header from "./Header";
 import Banner from "./Banner";
+import HomeHighlights from "./HomeHighlights";
 import FeaturedProperties from "./FeaturedProperties";
-import WhyChooseUs from "./WhyChooseUs";
 import Footer from "./Footer";
 import PropertyList from "../property/PropertyList";
 
@@ -27,6 +27,7 @@ const Home = () => {
       <Parallax strength={300}>
         <Banner onSearch={handleBannerSearch} />
       </Parallax>
+      <HomeHighlights />
       {showResults && (
         <Box mb={6} px={2}>
           <PropertyList filters={filters} />
@@ -39,7 +40,6 @@ const Home = () => {
         )}
       </React.Suspense>
       <FeaturedProperties />
-      <WhyChooseUs />
       <Footer />
     </Box>
   );

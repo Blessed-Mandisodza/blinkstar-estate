@@ -52,6 +52,20 @@ const FALLBACK_CONTACT = {
   whatsapp: "263782931905",
 };
 
+const guestFavoritesKey = "guestFavorites";
+
+const readGuestFavorites = () => {
+  try {
+    return JSON.parse(localStorage.getItem(guestFavoritesKey) || "[]");
+  } catch {
+    return [];
+  }
+};
+
+const writeGuestFavorites = (favorites) => {
+  localStorage.setItem(guestFavoritesKey, JSON.stringify(favorites));
+};
+
 const getImageUrl = (img) => {
   if (!img) return "";
   if (img.startsWith("http") || img.startsWith("data:") || img.startsWith("blob:")) {
@@ -215,7 +229,7 @@ const PropertyDetail = () => {
 
   useEffect(() => {
     if (!user || !property?._id) {
-      setIsFavorite(false);
+      setIsFavorite(Boolean(property?._id && readGuestFavorites().includes(property._id)));
       return;
     }
 
@@ -339,7 +353,12 @@ const PropertyDetail = () => {
 
   const handleFavorite = async () => {
     if (!user) {
-      navigate("/signin");
+      const guestFavorites = readGuestFavorites();
+      const nextFavorites = guestFavorites.includes(property._id)
+        ? guestFavorites.filter((id) => id !== property._id)
+        : [...guestFavorites, property._id];
+      writeGuestFavorites(nextFavorites);
+      setIsFavorite(nextFavorites.includes(property._id));
       return;
     }
 

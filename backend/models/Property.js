@@ -26,4 +26,10 @@ const propertySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+propertySchema.index({ createdAt: -1 });
+propertySchema.index({ listedBy: 1, createdAt: -1 });
+propertySchema.index({ propertyType: 1, createdAt: -1 });
+propertySchema.index({ status: 1, createdAt: -1 });
+propertySchema.index({ price: 1, createdAt: -1 });
+
 module.exports = mongoose.model("Property", propertySchema);

@@ -1,112 +1,212 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Box,
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Avatar,
-  Paper,
-  Grid,
-  Snackbar,
   Alert,
+  Avatar,
+  Box,
+  Button,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
 } from "@mui/material";
 import {
-  Edit as EditIcon,
-  Save as SaveIcon,
   Cancel as CancelIcon,
+  Delete as DeleteIcon,
+  PhotoCamera as PhotoCameraIcon,
+  Save as SaveIcon,
 } from "@mui/icons-material";
+import Header from "../ui/Header";
 import { useAuth } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
 
-export default function Profile() {
-  const { user, setUser } = useAuth();
-  const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    whatsapp: user?.whatsapp || "",
-    location: user?.location || "",
-    avatarUrl: user?.avatarUrl || "",
-    bio: user?.bio || "",
-  });
-  const [alert, setAlert] = useState({
-    open: false,
-    message: "",
-    severity: "success",
+const readFileAsDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 
-  const handleEdit = () => setEditing(true);
-  const handleCancel = () => {
-    setEditing(false);
-    setFormData({
-      name: user?.name || "",
-      email: user?.email || "",
-      phone: user?.phone || "",
-      whatsapp: user?.whatsapp || "",
-      location: user?.location || "",
-      avatarUrl: user?.avatarUrl || "",
-      bio: user?.bio || "",
-    });
+const getUserForm = (user) => ({
+  name: user?.name || "",
+  email: user?.email || "",
+  phone: user?.phone || "",
+  whatsapp: user?.whatsapp || "",
+  location: user?.location || "",
+  avatarUrl: user?.avatarUrl || "",
+  bio: user?.bio || "",
+});
+
+export default function Profile() {
+  const { user, setUser, logout } = useAuth();
+  const [formData, setFormData] = useState(() => getUserForm(user));
+  const [saving, setSaving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+
+  useEffect(() => {
+    authFetch("/api/users/me")
+      .then((res) => res.json())
+      .then((freshUser) => {
+        setUser(freshUser);
+        setFormData(getUserForm(freshUser));
+      })
+      .catch(() => {});
+  }, [setUser]);
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((current) => ({ ...current, [name]: value }));
   };
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+  const handleImageChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setMessage({ type: "error", text: "Please choose an image file." });
+      return;
+    }
+
+    if (file.size > 900 * 1024) {
+      setMessage({
+        type: "error",
+        text: "Please choose an image smaller than 900KB.",
+      });
+      return;
+    }
+
+    const avatarUrl = await readFileAsDataUrl(file);
+    setFormData((current) => ({ ...current, avatarUrl }));
   };
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setMessage({ type: "", text: "" });
+
     try {
       const res = await authFetch("/api/users/me", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      if (!res.ok) throw new Error("Failed to update profile");
       const updatedUser = await res.json();
-      setAlert({
-        open: true,
-        message: "Profile updated successfully!",
-        severity: "success",
-      });
-      setEditing(false);
-      if (setUser) setUser(updatedUser);
+      if (!res.ok) throw new Error(updatedUser.message || "Failed to update profile");
+
+      setUser(updatedUser);
+      setFormData(getUserForm(updatedUser));
+      setMessage({ type: "success", text: "Profile updated." });
     } catch (error) {
-      setAlert({
-        open: true,
-        message: error.message || "Failed to update profile",
-        severity: "error",
+      setMessage({
+        type: "error",
+        text: error.message || "Failed to update profile.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    setFormData(getUserForm(user));
+    setMessage({ type: "", text: "" });
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      const res = await authFetch("/api/users/me", { method: "DELETE" });
+      if (!res.ok) throw new Error("Could not delete account");
+      logout();
+    } catch (error) {
+      setDeleteOpen(false);
+      setMessage({
+        type: "error",
+        text: error.message || "Could not delete account.",
       });
     }
   };
-  const handleAlertClose = () => setAlert({ ...alert, open: false });
 
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ py: 4 }}>
-        <Typography variant="h4" align="center" gutterBottom>
-          My Profile
-        </Typography>
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              mb: 3,
-            }}
-          >
-            <Avatar sx={{ width: 90, height: 90, mb: 2 }} src={formData.avatarUrl}>
-              {formData.name?.[0]}
-            </Avatar>
-            <Typography variant="h6">{formData.name}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {formData.email}
-            </Typography>
-          </Box>
-          <Box component="form" onSubmit={handleSubmit} autoComplete="off">
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f6f8fb" }}>
+      <Header />
+      <Container maxWidth="md" sx={{ py: { xs: 3, md: 5 } }}>
+        <Stack spacing={0.5} sx={{ mb: 3 }}>
+          <Typography variant="h4" fontWeight={900}>
+            Profile
+          </Typography>
+          <Typography color="text.secondary">
+            Keep your contact details fresh so people can reach you.
+          </Typography>
+        </Stack>
+
+        {message.text && (
+          <Alert severity={message.type || "info"} sx={{ mb: 2 }}>
+            {message.text}
+          </Alert>
+        )}
+
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2, sm: 3 },
+            borderRadius: 2,
+            border: "1px solid #e5e7eb",
+          }}
+        >
+          <Box component="form" onSubmit={handleSubmit}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2.5}
+              alignItems={{ xs: "center", sm: "flex-start" }}
+              sx={{ mb: 3 }}
+            >
+              <Avatar
+                src={formData.avatarUrl}
+                sx={{ width: 110, height: 110, bgcolor: "primary.main" }}
+              >
+                {(formData.name?.[0] || formData.email?.[0] || "U").toUpperCase()}
+              </Avatar>
+              <Box sx={{ flex: 1, width: "100%" }}>
+                <Typography variant="h6" fontWeight={900}>
+                  {formData.name || "Your profile"}
+                </Typography>
+                <Typography color="text.secondary" sx={{ overflowWrap: "anywhere" }}>
+                  {formData.email}
+                </Typography>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 2 }}>
+                  <Button
+                    component="label"
+                    variant="outlined"
+                    startIcon={<PhotoCameraIcon />}
+                    sx={{ fontWeight: 800 }}
+                  >
+                    Upload Photo
+                    <input
+                      hidden
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
+                  </Button>
+                  <Button
+                    variant="text"
+                    color="inherit"
+                    onClick={() =>
+                      setFormData((current) => ({ ...current, avatarUrl: "" }))
+                    }
+                  >
+                    Remove
+                  </Button>
+                </Stack>
+              </Box>
+            </Stack>
+
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -115,7 +215,6 @@ export default function Profile() {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  disabled={!editing}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -124,7 +223,6 @@ export default function Profile() {
                   label="Email"
                   name="email"
                   value={formData.email}
-                  onChange={handleInputChange}
                   disabled
                   type="email"
                 />
@@ -132,11 +230,10 @@ export default function Profile() {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Phone Number"
+                  label="Phone"
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  disabled={!editing}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -146,27 +243,15 @@ export default function Profile() {
                   name="whatsapp"
                   value={formData.whatsapp}
                   onChange={handleInputChange}
-                  disabled={!editing}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label="Location"
                   name="location"
                   value={formData.location}
                   onChange={handleInputChange}
-                  disabled={!editing}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Avatar URL"
-                  name="avatarUrl"
-                  value={formData.avatarUrl}
-                  onChange={handleInputChange}
-                  disabled={!editing}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -176,62 +261,64 @@ export default function Profile() {
                   name="bio"
                   value={formData.bio}
                   onChange={handleInputChange}
-                  disabled={!editing}
                   multiline
-                  rows={3}
+                  rows={4}
                 />
               </Grid>
             </Grid>
-            <Box
-              sx={{ mt: 4, display: "flex", justifyContent: "center", gap: 2 }}
+
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1.25}
+              justifyContent="space-between"
+              sx={{ mt: 3 }}
             >
-              {!editing ? (
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => setDeleteOpen(true)}
+              >
+                Delete Account
+              </Button>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<CancelIcon />}
+                  onClick={handleReset}
+                >
+                  Reset
+                </Button>
                 <Button
                   variant="contained"
-                  startIcon={<EditIcon />}
-                  onClick={handleEdit}
+                  startIcon={<SaveIcon />}
+                  type="submit"
+                  disabled={saving}
+                  sx={{ fontWeight: 800 }}
                 >
-                  Edit Profile
+                  {saving ? "Saving..." : "Save Profile"}
                 </Button>
-              ) : (
-                <>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<SaveIcon />}
-                    type="submit"
-                  >
-                    Save Changes
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    startIcon={<CancelIcon />}
-                    onClick={handleCancel}
-                  >
-                    Cancel
-                  </Button>
-                </>
-              )}
-            </Box>
+              </Stack>
+            </Stack>
           </Box>
         </Paper>
-        <Snackbar
-          open={alert.open}
-          autoHideDuration={6000}
-          onClose={handleAlertClose}
-          anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        >
-          <Alert
-            onClose={handleAlertClose}
-            severity={alert.severity}
-            variant="filled"
-            elevation={6}
-          >
-            {alert.message}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </Container>
+      </Container>
+
+      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
+        <DialogTitle>Delete account?</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">
+            This permanently deletes your profile. This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteOpen(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={handleDeleteAccount}>
+            Delete Account
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }

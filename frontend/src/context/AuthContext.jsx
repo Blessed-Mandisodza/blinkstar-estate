@@ -1,4 +1,10 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  useCallback,
+} from "react";
 
 const AuthContext = createContext(null);
 
@@ -17,27 +23,27 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = (userData, token) => {
+  const login = useCallback((userData, token) => {
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
     localStorage.setItem("token", token);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     window.location.href = "/";
-  };
+  }, []);
 
   if (loading) {
     return <div>Loading...</div>;
   }
 
-  const updateUser = (userData) => {
+  const updateUser = useCallback((userData) => {
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, setUser: updateUser }}>

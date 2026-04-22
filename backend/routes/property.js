@@ -68,6 +68,8 @@ router.get("/", async (req, res) => {
   try {
     const {
       limit,
+      page,
+      includeMeta,
       sort,
       location,
       type,
@@ -139,16 +141,46 @@ router.get("/", async (req, res) => {
       sortObj = { area: -1, createdAt: -1 };
     }
 
-    // Build the query
-    let propertiesQuery = Property.find(query).populate("listedBy", "name email role");
+    const requestedLimit = toNumber(limit);
+    const pageNumber = Math.max(toNumber(page) || 1, 1);
+    const shouldReturnMeta = includeMeta === "true";
+    const pageSize = shouldReturnMeta
+      ? Math.min(requestedLimit || 16, 48)
+      : requestedLimit
+      ? Math.min(requestedLimit, 100)
+      : null;
+
+    // List views only need summary fields. Keep full image galleries for /:id.
+    let propertiesQuery = Property.find(query)
+      .select(
+        "title price location images imageUrl propertyType status featured furnished bedrooms bathrooms area latitude longitude createdAt listedBy"
+      )
+      .slice("images", 1)
+      .lean();
 
     // Apply sorting
     propertiesQuery = propertiesQuery.sort(sortObj);
 
-    // Apply limit
-    const requestedLimit = toNumber(limit);
-    if (requestedLimit) {
-      propertiesQuery = propertiesQuery.limit(Math.min(requestedLimit, 100));
+    if (shouldReturnMeta) {
+      propertiesQuery = propertiesQuery.skip((pageNumber - 1) * pageSize);
+    }
+
+    if (pageSize) {
+      propertiesQuery = propertiesQuery.limit(pageSize);
+    }
+
+    if (shouldReturnMeta) {
+      const [properties, total] = await Promise.all([
+        propertiesQuery,
+        Property.countDocuments(query),
+      ]);
+
+      return res.json({
+        properties,
+        total,
+        page: pageNumber,
+        totalPages: Math.max(Math.ceil(total / pageSize), 1),
+      });
     }
 
     const properties = await propertiesQuery;
@@ -444,7 +476,8 @@ router.post("/contact", async (req, res) => {
     const property = await Property.findById(propertyId).populate("listedBy");
     if (!property) return res.status(404).json({ error: "Property not found" });
     const ownerId = property.listedBy?._id || property.listedBy;
-    const ownerEmail = property.listedBy?.email || process.env.EMAIL_USER;
+    const ownerEmail =
+      property.listedBy?.email || process.env.EMAIL_TO || process.env.EMAIL_USER;
 
     const inquiry = await Inquiry.create({
       property: property._id,
@@ -499,8 +532,17 @@ router.post("/contact", async (req, res) => {
       text: mailText,
     };
 
-    await transporter.sendMail(mailOptions);
-    res.json({ success: true, inquiryId: inquiry._id });
+    try {
+      await transporter.sendMail(mailOptions);
+      return res.json({ success: true, inquiryId: inquiry._id });
+    } catch (emailError) {
+      console.error("Inquiry email notification error:", emailError);
+      return res.status(202).json({
+        success: true,
+        inquiryId: inquiry._id,
+        warning: "Inquiry saved, but email notification could not be sent.",
+      });
+    }
   } catch (err) {
     console.error("Contact form error:", err);
     res.status(500).json({ error: "Failed to save inquiry" });

@@ -32,6 +32,9 @@ const getAllowedOrigins = () => {
 };
 
 const allowedOrigins = getAllowedOrigins();
+const isDevLocalhostOrigin = (origin) =>
+  process.env.NODE_ENV !== "production" &&
+  /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin || "");
 
 app.use(
   cors({
@@ -41,7 +44,8 @@ app.use(
       if (
         !normalizedOrigin ||
         allowedOrigins.length === 0 ||
-        allowedOrigins.includes(normalizedOrigin)
+        allowedOrigins.includes(normalizedOrigin) ||
+        isDevLocalhostOrigin(normalizedOrigin)
       ) {
         return callback(null, true);
       }

@@ -63,19 +63,33 @@ router.put("/me", authMiddleware, async (req, res) => {
       updates.name = req.body.name;
     }
 
-    if (req.body.email) {
-      updates.email = req.body.email;
-    }
-
     ["phone", "whatsapp", "bio", "location", "avatarUrl"].forEach((field) => {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
       }
     });
 
-    if (req.body.password) {
+    const nextPassword = req.body.newPassword || req.body.password;
+    if (nextPassword) {
+      if (!req.body.currentPassword) {
+        return res.status(400).json({ message: "Current password is required" });
+      }
+
+      const currentUser = await User.findById(req.user.id);
+      const isMatch = await currentUser.comparePassword(req.body.currentPassword);
+
+      if (!isMatch) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+
+      if (nextPassword.length < 6) {
+        return res
+          .status(400)
+          .json({ message: "New password must be at least 6 characters" });
+      }
+
       const salt = await bcrypt.genSalt(10);
-      updates.password = await bcrypt.hash(req.body.password, salt);
+      updates.password = await bcrypt.hash(nextPassword, salt);
     }
 
     const user = await User.findByIdAndUpdate(req.user.id, updates, {

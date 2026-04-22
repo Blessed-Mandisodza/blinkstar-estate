@@ -34,6 +34,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LoginIcon from "@mui/icons-material/Login";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import SettingsIcon from "@mui/icons-material/Settings";
 import { useTheme } from "@mui/material/styles";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -51,6 +52,7 @@ const userLinks = [
   { label: "Saved Searches", path: "/saved-searches", icon: <SavedSearchIcon /> },
   { label: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
   { label: "Profile", path: "/profile", icon: <PersonIcon /> },
+  { label: "Settings", path: "/settings", icon: <SettingsIcon /> },
 ];
 
 const Header = () => {
@@ -61,7 +63,6 @@ const Header = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down("md"));
-  const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const showAuthButtons =
     !user && !["/signin", "/signup"].includes(location.pathname);
 
@@ -116,7 +117,7 @@ const Header = () => {
           width: "100%",
           maxWidth: 1280,
           mx: "auto",
-          px: { xs: 1.5, sm: 2, md: 3 },
+          px: { xs: 2.5, sm: 3, md: 3 },
         }}
       >
         <Box
@@ -147,10 +148,10 @@ const Header = () => {
               letterSpacing: 0,
               color: "text.primary",
               fontSize: { xs: "1rem", sm: "1.25rem", md: "1.4rem" },
-              maxWidth: { xs: "calc(100vw - 150px)", sm: 320, md: "none" },
+              maxWidth: { xs: "calc(100vw - 138px)", sm: 320, md: "none" },
             }}
           >
-            {isSmall ? "BlinkStar" : "BlinkStar Properties"}
+            BlinkStar Properties
           </Typography>
         </Box>
         {isCompact ? (
@@ -172,7 +173,6 @@ const Header = () => {
                 </Tooltip>
               )}
               <IconButton
-                edge="end"
                 color="inherit"
                 onClick={() => setDrawerOpen(true)}
                 aria-label="Open navigation"
@@ -215,8 +215,8 @@ const Header = () => {
                       alt="Logo"
                       sx={{ height: 38, width: 38, mr: 1, flexShrink: 0 }}
                     />
-                    <Typography fontWeight={800} noWrap>
-                      BlinkStar
+                    <Typography fontWeight={800} noWrap sx={{ fontSize: "0.98rem" }}>
+                      BlinkStar Properties
                     </Typography>
                   </Box>
                   <IconButton
@@ -340,6 +340,12 @@ const Header = () => {
             >
               <MenuItem onClick={handleDashboard}>Dashboard</MenuItem>
               <MenuItem onClick={handleProfile}>Profile</MenuItem>
+              <MenuItem onClick={() => {
+                handleMenuClose();
+                navigate("/settings");
+              }}>
+                Settings
+              </MenuItem>
               <MenuItem onClick={handleLogout}>Logout</MenuItem>
             </Menu>
           </>
@@ -428,6 +434,12 @@ const Header = () => {
                   >
                     <MenuItem onClick={handleDashboard}>Dashboard</MenuItem>
                     <MenuItem onClick={handleProfile}>Profile</MenuItem>
+                    <MenuItem onClick={() => {
+                      handleMenuClose();
+                      navigate("/settings");
+                    }}>
+                      Settings
+                    </MenuItem>
                     <MenuItem onClick={handleLogout}>Logout</MenuItem>
                   </Menu>
                 </>
