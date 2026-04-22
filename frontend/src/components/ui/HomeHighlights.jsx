@@ -75,47 +75,74 @@ const sectionTitleSx = {
 export default function HomeHighlights() {
   return (
     <>
-      <Box sx={{ bgcolor: "#ffffff", py: { xs: 3, md: 4 } }}>
+      <Box sx={{ bgcolor: "#ffffff", py: { xs: 2.5, md: 3 } }}>
         <Container maxWidth="lg">
-          <Grid container spacing={2}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(3, minmax(0, 1fr))",
+              },
+              gap: { xs: 1, sm: 1.25 },
+              p: { xs: 1, sm: 1.25 },
+              borderRadius: 2,
+              border: "1px solid #e5e7eb",
+              bgcolor: "#f8fafc",
+            }}
+          >
             {trustItems.map((item) => (
-              <Grid item xs={12} md={4} key={item.title}>
-                <Paper
-                  elevation={0}
+              <Box
+                key={item.title}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.25,
+                  minWidth: 0,
+                  px: { xs: 1.25, sm: 1.5 },
+                  py: { xs: 1.25, sm: 1.5 },
+                  borderRadius: 1.5,
+                  bgcolor: "common.white",
+                  boxShadow: "0 8px 18px rgba(15, 23, 42, 0.05)",
+                }}
+              >
+                <Box
                   sx={{
-                    height: "100%",
-                    p: { xs: 2, sm: 2.5 },
-                    borderRadius: 2,
-                    border: "1px solid #e5e7eb",
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 1.5,
+                    width: 34,
+                    height: 34,
+                    borderRadius: 1.5,
+                    bgcolor: "primary.main",
+                    color: "common.white",
+                    display: "grid",
+                    placeItems: "center",
+                    flexShrink: 0,
+                    "& svg": { fontSize: 19 },
                   }}
                 >
-                  <Box
+                  {item.icon}
+                </Box>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    fontWeight={900}
+                    sx={{ fontSize: { xs: "0.95rem", md: "1rem" } }}
+                    noWrap
+                  >
+                    {item.title}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
                     sx={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 2,
-                      bgcolor: "primary.main",
-                      color: "common.white",
-                      display: "grid",
-                      placeItems: "center",
-                      flexShrink: 0,
+                      display: { xs: "none", md: "block" },
+                      lineHeight: 1.35,
                     }}
                   >
-                    {item.icon}
-                  </Box>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography fontWeight={800}>{item.title}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {item.text}
-                    </Typography>
-                  </Box>
-                </Paper>
-              </Grid>
+                    {item.text}
+                  </Typography>
+                </Box>
+              </Box>
             ))}
-          </Grid>
+          </Box>
         </Container>
       </Box>
 
