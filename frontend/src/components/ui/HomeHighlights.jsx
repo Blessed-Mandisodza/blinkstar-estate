@@ -16,6 +16,7 @@ import HomeWorkIcon from "@mui/icons-material/HomeWork";
 import GroupsIcon from "@mui/icons-material/Groups";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import AddHomeWorkIcon from "@mui/icons-material/AddHomeWork";
+import Reveal from "./Reveal";
 import banner2 from "../../img/banner2.jpg";
 import house1 from "../../img/house1.jpg";
 import accommo from "../../img/accommo.jpg";
@@ -77,6 +78,7 @@ export default function HomeHighlights() {
     <>
       <Box sx={{ bgcolor: "#ffffff", py: { xs: 2.5, md: 3 } }}>
         <Container maxWidth="lg">
+          <Reveal>
           <Box
             sx={{
               display: "grid",
@@ -141,13 +143,15 @@ export default function HomeHighlights() {
                   </Typography>
                 </Box>
               </Box>
-            ))}
+              ))}
           </Box>
+          </Reveal>
         </Container>
       </Box>
 
       <Box sx={{ bgcolor: "#f6f8fb", py: { xs: 4.5, md: 6 } }}>
         <Container maxWidth="lg">
+          <Reveal>
           <Stack
             direction={{ xs: "column", md: "row" }}
             justifyContent="space-between"
@@ -235,11 +239,13 @@ export default function HomeHighlights() {
               </Box>
             ))}
           </Box>
+          </Reveal>
         </Container>
       </Box>
 
       <Box sx={{ bgcolor: "#ffffff", py: { xs: 5, md: 7 } }}>
         <Container maxWidth="lg">
+          <Reveal>
           <Box
             sx={{
               display: "grid",
@@ -363,11 +369,13 @@ export default function HomeHighlights() {
               </Paper>
             </Box>
           </Box>
+          </Reveal>
         </Container>
       </Box>
 
       <Box sx={{ bgcolor: "#f6f8fb", py: { xs: 5, md: 7 } }}>
         <Container maxWidth="lg">
+          <Reveal>
           <Box sx={{ textAlign: "center", maxWidth: 720, mx: "auto", mb: 4 }}>
             <Typography variant="overline" color="primary" fontWeight={900}>
               How It Works
@@ -421,6 +429,7 @@ export default function HomeHighlights() {
               </Box>
             ))}
           </Box>
+          </Reveal>
         </Container>
       </Box>
     </>

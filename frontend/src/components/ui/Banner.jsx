@@ -156,7 +156,11 @@ return (
       </IconButton>
 
       <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2 }}>
-<Box textAlign="center" mb={6}>
+<Box
+  textAlign="center"
+  mb={6}
+  sx={{ animation: 'heroFadeUp 760ms ease 80ms both' }}
+>
 <Typography
 variant="h2"
 component="h1"
@@ -182,7 +186,10 @@ fontWeight: 400,
 </Typography>
 </Box>
 
-    <SearchContainer elevation={4}>
+    <SearchContainer
+      elevation={4}
+      sx={{ animation: 'heroFadeUp 760ms ease 220ms both' }}
+    >
       <Stack spacing={3}>
         <Box
           sx={{

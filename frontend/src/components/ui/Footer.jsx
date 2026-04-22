@@ -18,6 +18,7 @@ import {
   WhatsApp,
 } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
+import Reveal from "./Reveal";
 
 const footerLinks = [
   ["Properties", "/properties"],
@@ -61,19 +62,20 @@ export default function Footer() {
       }}
     >
       <Container maxWidth="lg">
-        <Box
-          sx={{
-            mb: 5,
-            p: { xs: 2.5, md: 3 },
-            borderRadius: 2,
-            bgcolor: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "1fr auto" },
-            gap: 2,
-            alignItems: "center",
-          }}
-        >
+        <Reveal>
+          <Box
+            sx={{
+              mb: 5,
+              p: { xs: 2.5, md: 3 },
+              borderRadius: 2,
+              bgcolor: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "1fr auto" },
+              gap: 2,
+              alignItems: "center",
+            }}
+          >
           <Box>
             <Typography variant="h5" fontWeight={900}>
               Ready to find the right property?
@@ -106,8 +108,10 @@ export default function Footer() {
               WhatsApp
             </Button>
           </Stack>
-        </Box>
+          </Box>
+        </Reveal>
 
+        <Reveal delay={120}>
         <Grid container spacing={4}>
           <Grid item xs={12} md={4}>
             <Typography variant="h6" fontWeight={900} sx={{ mb: 1.5 }}>
@@ -193,6 +197,7 @@ export default function Footer() {
             </Stack>
           </Grid>
         </Grid>
+        </Reveal>
 
         <Box
           sx={{

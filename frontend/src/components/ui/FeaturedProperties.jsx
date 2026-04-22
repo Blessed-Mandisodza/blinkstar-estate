@@ -12,6 +12,7 @@ import { ArrowForward } from "@mui/icons-material";
 import PropertyCard from "../property/PropertyCard";
 import { useAuth } from "../../context/AuthContext";
 import { apiFetch, authFetch } from "../../utils/authFetch";
+import Reveal from "./Reveal";
 
 const guestFavoritesKey = "guestFavorites";
 
@@ -175,14 +176,15 @@ export default function FeaturedProperties() {
           px: { xs: 2, sm: 3, md: 4 },
         }}
       >
-        <Box
-          sx={{
-            mb: { xs: 4, sm: 5, md: 6 },
-            textAlign: "center",
-            maxWidth: "800px",
-            mx: "auto",
-          }}
-        >
+        <Reveal>
+          <Box
+            sx={{
+              mb: { xs: 4, sm: 5, md: 6 },
+              textAlign: "center",
+              maxWidth: "800px",
+              mx: "auto",
+            }}
+          >
           <Typography
             variant="h3"
             component="h2"
@@ -205,7 +207,8 @@ export default function FeaturedProperties() {
           >
             Discover our latest property listings
           </Typography>
-        </Box>
+          </Box>
+        </Reveal>
 
         {properties.length === 0 ? (
           <Box
@@ -228,7 +231,7 @@ export default function FeaturedProperties() {
             justifyContent="center"
             alignItems="stretch"
           >
-            {properties.slice(0, 8).map((property) => (
+            {properties.slice(0, 8).map((property, index) => (
               <Grid
                 item
                 xs={12}
@@ -241,18 +244,20 @@ export default function FeaturedProperties() {
                   justifyContent: "center",
                 }}
               >
-                <Box
-                  sx={{
-                    width: "100%",
-                    maxWidth: { xs: "400px", sm: "100%" },
-                  }}
-                >
-                  <PropertyCard
-                    property={property}
-                    isFavorite={favorites.includes(property._id)}
-                    onFavoriteToggle={() => toggleFavorite(property._id)}
-                  />
-                </Box>
+                <Reveal delay={(index % 4) * 80}>
+                  <Box
+                    sx={{
+                      width: "100%",
+                      maxWidth: { xs: "400px", sm: "100%" },
+                    }}
+                  >
+                    <PropertyCard
+                      property={property}
+                      isFavorite={favorites.includes(property._id)}
+                      onFavoriteToggle={() => toggleFavorite(property._id)}
+                    />
+                  </Box>
+                </Reveal>
               </Grid>
             ))}
           </Grid>

@@ -62,11 +62,15 @@ const PropertyCard = ({ property, isFavorite, onFavoriteToggle }) => {
           transform: "translateY(-4px)",
           boxShadow: 6,
         },
+        "&:hover .property-card-media": {
+          transform: "scale(1.045)",
+        },
       }}
       onClick={handleCardClick}
     >
       <Box sx={{ position: "relative" }}>
         <CardMedia
+          className="property-card-media"
           component="img"
           height="180"
           image={getImageUrl(
@@ -76,6 +80,7 @@ const PropertyCard = ({ property, isFavorite, onFavoriteToggle }) => {
           sx={{
             objectFit: "cover",
             bgcolor: "grey.100",
+            transition: "transform 380ms ease",
           }}
         />
         {property.status && (
