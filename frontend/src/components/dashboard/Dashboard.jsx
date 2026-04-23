@@ -572,9 +572,18 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
               ) : (
-                <Grid container spacing={3}>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      sm: "repeat(3, minmax(0, 1fr))",
+                    },
+                    gap: 2,
+                  }}
+                >
                   {inquiries.map((inquiry) => (
-                    <Grid item xs={12} md={6} lg={4} key={inquiry._id}>
+                    <Box key={inquiry._id} sx={{ minWidth: 0 }}>
                       <Card
                         sx={{
                           height: "100%",
@@ -585,11 +594,11 @@ export default function Dashboard() {
                           flexDirection: "column",
                         }}
                       >
-                        <CardContent>
+                        <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
                           <Stack
                             direction="row"
                             spacing={1}
-                            sx={{ mb: 1, flexWrap: "wrap", rowGap: 1 }}
+                            sx={{ mb: 0.75, flexWrap: "wrap", rowGap: 0.75 }}
                           >
                             <Chip
                               label={formatInquirySource(inquiry.source)}
@@ -603,13 +612,14 @@ export default function Dashboard() {
                             <Chip label={inquiry.status} size="small" />
                           </Stack>
                           <Typography
-                            variant="h6"
+                            variant="subtitle1"
                             fontWeight={700}
                             sx={{
                               display: "-webkit-box",
                               WebkitBoxOrient: "vertical",
                               WebkitLineClamp: 2,
                               overflow: "hidden",
+                              lineHeight: 1.25,
                             }}
                           >
                             {inquiry.property?.title || "Property inquiry"}
@@ -626,10 +636,10 @@ export default function Dashboard() {
                           <Typography
                             variant="body2"
                             sx={{
-                              mt: 1,
+                              mt: 0.75,
                               display: "-webkit-box",
                               WebkitBoxOrient: "vertical",
-                              WebkitLineClamp: 2,
+                              WebkitLineClamp: 1,
                               overflow: "hidden",
                             }}
                           >
@@ -641,7 +651,7 @@ export default function Dashboard() {
                             label="Status"
                             value={inquiry.status || "New"}
                             fullWidth
-                            sx={{ mt: 2 }}
+                            sx={{ mt: 1.25 }}
                             onChange={(event) => {
                               const status = event.target.value;
                               updateInquiryLocal(inquiry._id, { status });
@@ -660,8 +670,8 @@ export default function Dashboard() {
                             value={inquiry.followUpNotes || ""}
                             fullWidth
                             multiline
-                            minRows={2}
-                            sx={{ mt: 2 }}
+                            minRows={1}
+                            sx={{ mt: 1.25 }}
                             onChange={(event) =>
                               updateInquiryLocal(inquiry._id, {
                                 followUpNotes: event.target.value,
@@ -676,7 +686,7 @@ export default function Dashboard() {
                           <Stack
                             direction="row"
                             spacing={1}
-                            sx={{ mt: 2, flexWrap: "wrap", rowGap: 1 }}
+                            sx={{ mt: 1.25, flexWrap: "wrap", rowGap: 0.75 }}
                           >
                             {inquiry.phone && (
                               <Button
@@ -711,16 +721,16 @@ export default function Dashboard() {
                           <Typography
                             variant="caption"
                             color="text.secondary"
-                            sx={{ display: "block", mt: 1.5 }}
+                            sx={{ display: "block", mt: 1 }}
                           >
                             {formatInquiryDate(inquiry.createdAt)}
                             {savingLeadId === inquiry._id ? " | Saving..." : ""}
                           </Typography>
                         </CardContent>
                       </Card>
-                    </Grid>
+                    </Box>
                   ))}
-                </Grid>
+                </Box>
               )}
             </Box>
 

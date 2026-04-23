@@ -6,6 +6,7 @@ const SavedSearch = require("../models/SavedSearch");
 const auth = require("../middleware/auth");
 const multer = require("multer");
 const nodemailer = require("nodemailer");
+const { uploadImages } = require("../utils/imageUpload");
 
 const REVIEW_STATUSES = ["pending", "approved", "rejected"];
 
@@ -28,9 +29,6 @@ const applyNumberFilter = (query, field, minValue, maxValue) => {
   if (min !== null) query[field].$gte = min;
   if (max !== null) query[field].$lte = max;
 };
-
-const fileToDataUrl = (file) =>
-  `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
 
 const isAdmin = (user) => user?.role === "admin";
 
@@ -252,7 +250,7 @@ const upload = multer({
 // Create a property (auth required)
 router.post("/", auth, upload.array("images", 10), async (req, res) => {
   try {
-    const imagePaths = req.files ? req.files.map(fileToDataUrl) : [];
+    const imagePaths = await uploadImages(req.files);
     const reviewStatus = isAdmin(req.user) ? "approved" : "pending";
     const property = new Property({
       ...req.body,
@@ -757,7 +755,7 @@ router.put("/:id", auth, upload.array("images", 10), async (req, res) => {
     }
 
     if (req.files && req.files.length > 0) {
-      update.images = req.files.map(fileToDataUrl);
+      update.images = await uploadImages(req.files);
     }
     const property = await Property.findOneAndUpdate(query, update, { new: true });
     if (!property)

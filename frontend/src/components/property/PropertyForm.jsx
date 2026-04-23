@@ -80,7 +80,9 @@ const PropertyForm = () => {
   const [form, setForm] = useState(initialState);
   const [loading, setLoading] = useState(!!id);
   const [error, setError] = useState('');
+  const [imageError, setImageError] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
 
   useEffect(() => {
@@ -118,8 +120,29 @@ const PropertyForm = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  useEffect(() => {
+    const urls = selectedFiles.map((file) => URL.createObjectURL(file));
+    setPreviewUrls(urls);
+
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [selectedFiles]);
+
   const handleFileChange = e => {
-    setSelectedFiles(Array.from(e.target.files));
+    const files = Array.from(e.target.files || []);
+    const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+    const limitedFiles = imageFiles.slice(0, 10);
+
+    if (imageFiles.length !== files.length) {
+      setImageError('Only image files can be uploaded.');
+    } else if (imageFiles.length > 10) {
+      setImageError('You can upload up to 10 images per listing.');
+    } else {
+      setImageError('');
+    }
+
+    setSelectedFiles(limitedFiles);
   };
 
   const handleSubmit = async e => {
@@ -188,14 +211,17 @@ const PropertyForm = () => {
             </Grid>
             <Grid item xs={12}>
               <Button variant="outlined" component="label" fullWidth sx={{ py: 2, fontWeight: 600 }}>
-                Upload Images
-                <input type="file" name="images" multiple hidden onChange={handleFileChange} />
+                {selectedFiles.length ? `${selectedFiles.length} Image${selectedFiles.length === 1 ? '' : 's'} Selected` : 'Upload Images'}
+                <input type="file" name="images" accept="image/*" multiple hidden onChange={handleFileChange} />
               </Button>
+              <Typography variant="caption" color={imageError ? 'error' : 'text.secondary'} sx={{ display: 'block', mt: 1 }}>
+                {imageError || 'Upload up to 10 clear property photos.'}
+              </Typography>
               <Box mt={1} display="flex" flexWrap="wrap" gap={1}>
-                {selectedFiles.map((file, idx) => (
+                {previewUrls.map((url, idx) => (
                   <img
                     key={idx}
-                    src={URL.createObjectURL(file)}
+                    src={url}
                     alt="preview"
                     style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4 }}
                   />
