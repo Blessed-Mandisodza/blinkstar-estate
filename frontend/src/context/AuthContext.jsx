@@ -8,6 +8,15 @@ import React, {
 
 const AuthContext = createContext(null);
 
+const normalizeUser = (userData) =>
+  userData
+    ? {
+        ...userData,
+        _id: userData._id || userData.id,
+        id: userData.id || userData._id,
+      }
+    : null;
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,14 +27,20 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem("token");
 
     if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(normalizeUser(JSON.parse(storedUser)));
+      } catch {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
     }
     setLoading(false);
   }, []);
 
   const login = useCallback((userData, token) => {
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+    const nextUser = normalizeUser(userData);
+    setUser(nextUser);
+    localStorage.setItem("user", JSON.stringify(nextUser));
     localStorage.setItem("token", token);
   }, []);
 
@@ -37,8 +52,9 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const updateUser = useCallback((userData) => {
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+    const nextUser = normalizeUser(userData);
+    setUser(nextUser);
+    localStorage.setItem("user", JSON.stringify(nextUser));
   }, []);
 
   if (loading) {

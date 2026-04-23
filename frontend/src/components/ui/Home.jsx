@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Box } from "@mui/material";
 import { Parallax } from "react-parallax";
 import Header from "./Header";
+import SeoHead from "./SeoHead";
 import Banner from "./Banner";
 import HomeHighlights from "./HomeHighlights";
 import FeaturedProperties from "./FeaturedProperties";
@@ -23,6 +24,10 @@ const Home = () => {
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <SeoHead
+        title="BlinkStar Properties | Homes, Rentals, Land and Commercial Listings"
+        description="Find homes, rentals, land, and commercial property with BlinkStar Properties."
+      />
       <Header />
       <Parallax strength={300}>
         <Banner onSearch={handleBannerSearch} />

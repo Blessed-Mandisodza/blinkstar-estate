@@ -19,6 +19,7 @@ import MortgageCalculator from "./components/property/MortgageCalculator";
 import Agents from "./components/agents/Agents";
 import AgentProfile from "./components/agents/AgentProfile";
 import SeoListings from "./components/property/SeoListings";
+import NotFound from "./components/ui/NotFound";
 
 
 function App() {
@@ -66,6 +67,14 @@ function App() {
             <Route path="/agents" element={<Agents />} />
             <Route path="/agents/:id" element={<AgentProfile />} />
             <Route
+              path="/messages"
+              element={
+                <PrivateRoute>
+                  <Dashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
               path="/favorites"
               element={
                 <PrivateRoute>
@@ -100,6 +109,7 @@ function App() {
             />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Box>
       </Router>

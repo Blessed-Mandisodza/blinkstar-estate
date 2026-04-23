@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { Box, Button, Container, Grid, Typography } from "@mui/material";
 import Header from "../ui/Header";
 import Loader from "../ui/Loader";
+import SeoHead from "../ui/SeoHead";
 import PropertyCard from "./PropertyCard";
 import { apiFetch } from "../../utils/authFetch";
 
@@ -40,6 +41,10 @@ export default function SeoListings() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f6f8fb" }}>
+      <SeoHead
+        title={`${filters.type} Properties in ${filters.location} | BlinkStar Properties`}
+        description={`Browse ${filters.type.toLowerCase()} property listings in ${filters.location} with BlinkStar Properties.`}
+      />
       <Header />
       <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
         <Typography variant="h4" fontWeight={900} sx={{ mb: 1 }}>

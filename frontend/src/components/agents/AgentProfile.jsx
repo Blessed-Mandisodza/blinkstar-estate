@@ -4,6 +4,7 @@ import {
   Avatar,
   Box,
   Button,
+  Chip,
   Container,
   Grid,
   Paper,
@@ -15,6 +16,7 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import Header from "../ui/Header";
 import Loader from "../ui/Loader";
+import SeoHead from "../ui/SeoHead";
 import PropertyCard from "../property/PropertyCard";
 import { apiFetch } from "../../utils/authFetch";
 
@@ -58,6 +60,11 @@ export default function AgentProfile() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f6f8fb" }}>
+      <SeoHead
+        title={`${agent.name || "Agent"} | BlinkStar Properties`}
+        description={`View ${agent.name || "this BlinkStar agent"}'s profile and active property listings.`}
+        image={agent.avatarUrl || "/bs logo.png"}
+      />
       <Header />
       <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
         <Paper sx={{ p: { xs: 2.5, md: 4 }, borderRadius: 2, mb: 4 }}>
@@ -79,6 +86,14 @@ export default function AgentProfile() {
               <Typography color="text.secondary">
                 {agent.location || "Property Consultant"}
               </Typography>
+              {agent.verified && (
+                <Chip
+                  color="success"
+                  label="Verified Agent"
+                  size="small"
+                  sx={{ mt: 1, fontWeight: 700 }}
+                />
+              )}
               <Typography sx={{ mt: 1.5 }}>
                 {agent.bio || "Helping buyers and sellers find the right match."}
               </Typography>

@@ -7,6 +7,8 @@ const auth = require("../middleware/auth");
 const multer = require("multer");
 const nodemailer = require("nodemailer");
 
+const REVIEW_STATUSES = ["pending", "approved", "rejected"];
+
 const escapeRegex = (value = "") =>
   String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -30,6 +32,206 @@ const applyNumberFilter = (query, field, minValue, maxValue) => {
 const fileToDataUrl = (file) =>
   `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
 
+const isAdmin = (user) => user?.role === "admin";
+
+const requireAdmin = (req, res, next) => {
+  if (!isAdmin(req.user)) {
+    return res.status(403).json({ error: "Admin access required" });
+  }
+
+  return next();
+};
+
+const getFrontendUrl = () =>
+  (process.env.FRONTEND_URL || process.env.CLIENT_URL || "").replace(/\/+$/, "");
+
+const getMailTransporter = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+};
+
+const getPublicReviewFilter = () => ({
+  $or: [{ reviewStatus: "approved" }, { reviewStatus: { $exists: false } }],
+});
+
+const buildPropertyQuery = (filters = {}, options = {}) => {
+  const {
+    location,
+    type,
+    propertyType,
+    search,
+    minPrice,
+    maxPrice,
+    minBedrooms,
+    maxBedrooms,
+    bedrooms,
+    minBathrooms,
+    maxBathrooms,
+    bathrooms,
+    minArea,
+    maxArea,
+    status,
+    featured,
+    furnished,
+    reviewStatus,
+  } = filters;
+  const query = {};
+  const andFilters = [];
+
+  if (search) {
+    const searchRegex = { $regex: escapeRegex(search), $options: "i" };
+    andFilters.push({
+      $or: [
+        { title: searchRegex },
+        { description: searchRegex },
+        { location: searchRegex },
+        { propertyType: searchRegex },
+      ],
+    });
+  }
+
+  if (location) query.location = { $regex: escapeRegex(location), $options: "i" };
+
+  const selectedType = propertyType || type;
+  if (selectedType) {
+    query.propertyType = {
+      $regex: `^${escapeRegex(selectedType)}$`,
+      $options: "i",
+    };
+  }
+
+  if (status) {
+    query.status = { $regex: `^${escapeRegex(status)}$`, $options: "i" };
+  }
+
+  if (featured === "true" || featured === true) {
+    query.featured = true;
+  }
+
+  if (furnished) {
+    query.furnished = { $regex: `^${escapeRegex(furnished)}$`, $options: "i" };
+  }
+
+  if (reviewStatus && REVIEW_STATUSES.includes(reviewStatus)) {
+    query.reviewStatus = reviewStatus;
+  }
+
+  applyNumberFilter(query, "price", minPrice, maxPrice);
+  applyNumberFilter(query, "bedrooms", minBedrooms || bedrooms, maxBedrooms);
+  applyNumberFilter(query, "bathrooms", minBathrooms || bathrooms, maxBathrooms);
+  applyNumberFilter(query, "area", minArea, maxArea);
+
+  if (options.onlyApproved) {
+    andFilters.push(getPublicReviewFilter());
+  }
+
+  if (andFilters.length) {
+    query.$and = andFilters;
+  }
+
+  return query;
+};
+
+const getSortObject = (sort) => {
+  if (sort === "oldest") {
+    return { createdAt: 1 };
+  }
+
+  if (sort === "price" || sort === "price-asc") {
+    return { price: 1 };
+  }
+
+  if (sort === "price-desc") {
+    return { price: -1 };
+  }
+
+  if (sort === "bedrooms-desc") {
+    return { bedrooms: -1, createdAt: -1 };
+  }
+
+  if (sort === "area-desc") {
+    return { area: -1, createdAt: -1 };
+  }
+
+  return { createdAt: -1 };
+};
+
+const notifySavedSearchMatches = async (property) => {
+  if (property.reviewStatus && property.reviewStatus !== "approved") {
+    return { matched: 0, sent: 0 };
+  }
+
+  const transporter = getMailTransporter();
+
+  if (!transporter) {
+    return { matched: 0, sent: 0, skipped: "email_not_configured" };
+  }
+
+  const searches = await SavedSearch.find({ alertsEnabled: true }).populate(
+    "user",
+    "email name"
+  );
+  const matchingSearches = [];
+
+  for (const search of searches) {
+    if (!search.user?.email) continue;
+
+    const query = {
+      _id: property._id,
+      ...buildPropertyQuery(search.filters || {}, { onlyApproved: false }),
+    };
+    const matches = await Property.exists(query);
+
+    if (matches) {
+      matchingSearches.push(search);
+    }
+  }
+
+  const frontendUrl = getFrontendUrl();
+  const propertyUrl = frontendUrl
+    ? `${frontendUrl}/property/${property._id}`
+    : `/property/${property._id}`;
+  let sent = 0;
+
+  for (const search of matchingSearches) {
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: search.user.email,
+        subject: `New BlinkStar match: ${property.title}`,
+        text: [
+          `Hi ${search.user.name || "there"},`,
+          "",
+          `A property matching your saved search "${search.name}" is now available.`,
+          "",
+          `${property.title}`,
+          `${property.location || ""}`,
+          property.price ? `$${Number(property.price).toLocaleString()}` : "Price on request",
+          "",
+          propertyUrl,
+        ].join("\n"),
+      });
+
+      search.lastNotifiedAt = new Date();
+      await search.save();
+      sent += 1;
+    } catch (error) {
+      console.error("Saved search alert email error:", error);
+    }
+  }
+
+  return { matched: matchingSearches.length, sent };
+};
+
 // Vercel/serverless filesystems are not persistent, so image uploads are kept
 // with the property record instead of being written to /uploads.
 const upload = multer({
@@ -51,12 +253,20 @@ const upload = multer({
 router.post("/", auth, upload.array("images", 10), async (req, res) => {
   try {
     const imagePaths = req.files ? req.files.map(fileToDataUrl) : [];
+    const reviewStatus = isAdmin(req.user) ? "approved" : "pending";
     const property = new Property({
       ...req.body,
       images: imagePaths,
       listedBy: req.user._id,
+      reviewStatus,
+      publishedAt: reviewStatus === "approved" ? new Date() : undefined,
     });
     await property.save();
+    if (property.reviewStatus === "approved") {
+      notifySavedSearchMatches(property).catch((error) =>
+        console.error("Saved search notification error:", error)
+      );
+    }
     res.status(201).json(property);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -81,6 +291,8 @@ router.get("/", async (req, res) => {
       bedrooms,
       minBathrooms,
       bathrooms,
+      maxBedrooms,
+      maxBathrooms,
       minArea,
       maxArea,
       status,
@@ -88,58 +300,29 @@ router.get("/", async (req, res) => {
       furnished,
     } = req.query;
 
-    // Build query object
-    let query = {};
-    if (search) {
-      const searchRegex = { $regex: escapeRegex(search), $options: "i" };
-      query.$or = [
-        { title: searchRegex },
-        { description: searchRegex },
-        { location: searchRegex },
-        { propertyType: searchRegex },
-      ];
-    }
-
-    if (location) query.location = { $regex: escapeRegex(location), $options: "i" };
-
-    const selectedType = propertyType || type;
-    if (selectedType) {
-      query.propertyType = {
-        $regex: `^${escapeRegex(selectedType)}$`,
-        $options: "i",
-      };
-    }
-
-    if (status) {
-      query.status = { $regex: `^${escapeRegex(status)}$`, $options: "i" };
-    }
-
-    if (featured === "true") {
-      query.featured = true;
-    }
-
-    if (furnished) {
-      query.furnished = { $regex: `^${escapeRegex(furnished)}$`, $options: "i" };
-    }
-
-    applyNumberFilter(query, "price", minPrice, maxPrice);
-    applyNumberFilter(query, "bedrooms", minBedrooms || bedrooms, null);
-    applyNumberFilter(query, "bathrooms", minBathrooms || bathrooms, null);
-    applyNumberFilter(query, "area", minArea, maxArea);
-
-    // Build sort object
-    let sortObj = { createdAt: -1 };
-    if (sort === "oldest") {
-      sortObj = { createdAt: 1 };
-    } else if (sort === "price" || sort === "price-asc") {
-      sortObj = { price: 1 };
-    } else if (sort === "price-desc") {
-      sortObj = { price: -1 };
-    } else if (sort === "bedrooms-desc") {
-      sortObj = { bedrooms: -1, createdAt: -1 };
-    } else if (sort === "area-desc") {
-      sortObj = { area: -1, createdAt: -1 };
-    }
+    const query = buildPropertyQuery(
+      {
+        location,
+        type,
+        propertyType,
+        search,
+        minPrice,
+        maxPrice,
+        minBedrooms,
+        maxBedrooms,
+        bedrooms,
+        minBathrooms,
+        maxBathrooms,
+        bathrooms,
+        minArea,
+        maxArea,
+        status,
+        featured,
+        furnished,
+      },
+      { onlyApproved: true }
+    );
+    const sortObj = getSortObject(sort);
 
     const requestedLimit = toNumber(limit);
     const pageNumber = Math.max(toNumber(page) || 1, 1);
@@ -153,7 +336,7 @@ router.get("/", async (req, res) => {
     // List views only need summary fields. Keep full image galleries for /:id.
     let propertiesQuery = Property.find(query)
       .select(
-        "title price location images imageUrl propertyType status featured furnished bedrooms bathrooms area latitude longitude createdAt listedBy"
+        "title price location images imageUrl propertyType status featured furnished reviewStatus bedrooms bathrooms area latitude longitude createdAt listedBy"
       )
       .slice("images", 1)
       .lean();
@@ -185,6 +368,87 @@ router.get("/", async (req, res) => {
 
     const properties = await propertiesQuery;
     res.json(properties);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin moderation queue for approving/rejecting submitted listings
+router.get("/admin/moderation", auth, requireAdmin, async (req, res) => {
+  try {
+    const { reviewStatus = "pending", limit = 24, page = 1 } = req.query;
+    const pageNumber = Math.max(toNumber(page) || 1, 1);
+    const pageSize = Math.min(toNumber(limit) || 24, 100);
+    const query =
+      reviewStatus === "all"
+        ? {}
+        : { reviewStatus: REVIEW_STATUSES.includes(reviewStatus) ? reviewStatus : "pending" };
+
+    const [properties, total, counts] = await Promise.all([
+      Property.find(query)
+        .select(
+          "title price location images imageUrl propertyType status featured furnished reviewStatus reviewNotes bedrooms bathrooms area createdAt listedBy"
+        )
+        .slice("images", 1)
+        .populate("listedBy", "name email role verified")
+        .sort({ createdAt: -1 })
+        .skip((pageNumber - 1) * pageSize)
+        .limit(pageSize),
+      Property.countDocuments(query),
+      Promise.all(
+        REVIEW_STATUSES.map(async (statusName) => [
+          statusName,
+          await Property.countDocuments({ reviewStatus: statusName }),
+        ])
+      ),
+    ]);
+
+    res.json({
+      properties,
+      total,
+      page: pageNumber,
+      totalPages: Math.max(Math.ceil(total / pageSize), 1),
+      counts: Object.fromEntries(counts),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch("/:id/review", auth, requireAdmin, async (req, res) => {
+  try {
+    const { reviewStatus, reviewNotes = "" } = req.body;
+
+    if (!REVIEW_STATUSES.includes(reviewStatus)) {
+      return res.status(400).json({ error: "Invalid review status" });
+    }
+
+    const update = {
+      reviewStatus,
+      reviewNotes,
+      reviewedBy: req.user._id,
+      reviewedAt: new Date(),
+    };
+
+    if (reviewStatus === "approved") {
+      update.publishedAt = new Date();
+    }
+
+    const property = await Property.findByIdAndUpdate(req.params.id, update, {
+      new: true,
+    }).populate("listedBy", "name email role verified");
+
+    if (!property) {
+      return res.status(404).json({ error: "Property not found" });
+    }
+
+    if (reviewStatus === "approved") {
+      notifySavedSearchMatches(property).catch((error) =>
+        console.error("Saved search notification error:", error)
+      );
+    }
+
+    res.json({ property });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -275,7 +539,7 @@ router.post("/:id/contact-click", async (req, res) => {
 
     const property = await Property.findById(req.params.id).populate(
       "listedBy",
-      "name email role"
+      "name email phone whatsapp role verified"
     );
 
     if (!property) return res.status(404).json({ error: "Property not found" });
@@ -333,6 +597,38 @@ router.post("/saved-searches", auth, async (req, res) => {
   }
 });
 
+router.patch("/saved-searches/:id", auth, async (req, res) => {
+  try {
+    const updates = {};
+
+    if (req.body.name !== undefined) {
+      updates.name = req.body.name;
+    }
+
+    if (req.body.filters !== undefined) {
+      updates.filters = req.body.filters;
+    }
+
+    if (req.body.alertsEnabled !== undefined) {
+      updates.alertsEnabled = Boolean(req.body.alertsEnabled);
+    }
+
+    const search = await SavedSearch.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      updates,
+      { new: true }
+    );
+
+    if (!search) {
+      return res.status(404).json({ error: "Saved search not found" });
+    }
+
+    res.json({ search });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.delete("/saved-searches/:id", auth, async (req, res) => {
   try {
     const deleted = await SavedSearch.findOneAndDelete({
@@ -354,23 +650,35 @@ router.delete("/saved-searches/:id", auth, async (req, res) => {
 router.get("/stats/:userId", auth, async (req, res) => {
   try {
     const userId = req.params.userId;
+    const ownsStats = req.user._id.toString() === userId;
 
-    const totalProperties = await Property.countDocuments({ listedBy: userId });
+    if (!ownsStats && !isAdmin(req.user)) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const listingQuery = isAdmin(req.user) && req.query.scope === "all" ? {} : { listedBy: userId };
+    const totalProperties = await Property.countDocuments(listingQuery);
     const activeListings = await Property.countDocuments({
-      listedBy: userId,
+      ...listingQuery,
       status: { $in: ["Available", "For Sale", "For Rent"] },
     });
     const totalViews = totalProperties * 15;
     const newInquiries = await Inquiry.countDocuments({
-      propertyOwner: userId,
+      ...(isAdmin(req.user) && req.query.scope === "all"
+        ? {}
+        : { propertyOwner: userId }),
       status: "New",
     });
+    const pendingApprovals = isAdmin(req.user)
+      ? await Property.countDocuments({ reviewStatus: "pending" })
+      : await Property.countDocuments({ listedBy: userId, reviewStatus: "pending" });
 
     res.json({
       totalProperties,
       activeListings,
       totalViews,
       newInquiries,
+      pendingApprovals,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -382,6 +690,11 @@ router.get("/user/:userId", auth, async (req, res) => {
   try {
     const userId = req.params.userId;
     const { page = 1, limit = 10 } = req.query;
+    const ownsListings = req.user._id.toString() === userId;
+
+    if (!ownsListings && !isAdmin(req.user)) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
 
     const properties = await Property.find({ listedBy: userId })
       .sort({ createdAt: -1 })
@@ -407,7 +720,7 @@ router.get("/:id", async (req, res) => {
   try {
     const property = await Property.findById(req.params.id).populate(
       "listedBy",
-      "name email role"
+      "name email phone whatsapp role verified"
     );
     if (!property) return res.status(404).json({ error: "Property not found" });
     res.json(property);
@@ -420,18 +733,42 @@ router.get("/:id", async (req, res) => {
 router.put("/:id", auth, upload.array("images", 10), async (req, res) => {
   try {
     let update = { ...req.body };
+    const query = isAdmin(req.user)
+      ? { _id: req.params.id }
+      : { _id: req.params.id, listedBy: req.user._id };
+
+    if (!isAdmin(req.user)) {
+      delete update.reviewStatus;
+      delete update.reviewNotes;
+      delete update.reviewedAt;
+      delete update.reviewedBy;
+      delete update.publishedAt;
+    } else if (
+      update.reviewStatus !== undefined &&
+      !REVIEW_STATUSES.includes(update.reviewStatus)
+    ) {
+      return res.status(400).json({ error: "Invalid review status" });
+    }
+
+    if (update.reviewStatus === "approved") {
+      update.reviewedBy = req.user._id;
+      update.reviewedAt = new Date();
+      update.publishedAt = update.publishedAt || new Date();
+    }
+
     if (req.files && req.files.length > 0) {
       update.images = req.files.map(fileToDataUrl);
     }
-    const property = await Property.findOneAndUpdate(
-      { _id: req.params.id, listedBy: req.user._id },
-      update,
-      { new: true }
-    );
+    const property = await Property.findOneAndUpdate(query, update, { new: true });
     if (!property)
       return res
         .status(404)
         .json({ error: "Property not found or not authorized" });
+    if (update.reviewStatus === "approved") {
+      notifySavedSearchMatches(property).catch((error) =>
+        console.error("Saved search notification error:", error)
+      );
+    }
     res.json(property);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -441,10 +778,11 @@ router.put("/:id", auth, upload.array("images", 10), async (req, res) => {
 // Delete a property (auth required)
 router.delete("/:id", auth, async (req, res) => {
   try {
-    const property = await Property.findOneAndDelete({
-      _id: req.params.id,
-      listedBy: req.user._id,
-    });
+    const property = await Property.findOneAndDelete(
+      isAdmin(req.user)
+        ? { _id: req.params.id }
+        : { _id: req.params.id, listedBy: req.user._id }
+    );
     if (!property)
       return res
         .status(404)
@@ -502,14 +840,7 @@ router.post("/contact", async (req, res) => {
       });
     }
 
-    // Set up Nodemailer (Gmail config, use .env for credentials)
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER, // Set in .env
-        pass: process.env.EMAIL_PASS, // Set in .env
-      },
-    });
+    const transporter = getMailTransporter();
 
     const mailText = [
       `You have a new ${inquiryType || "property inquiry"} for "${property.title}".`,
@@ -534,6 +865,23 @@ router.post("/contact", async (req, res) => {
 
     try {
       await transporter.sendMail(mailOptions);
+      await transporter
+        .sendMail({
+          from: process.env.EMAIL_USER,
+          to: email,
+          subject: `We received your inquiry: ${property.title}`,
+          text: [
+            `Hi ${name},`,
+            "",
+            `Thanks for contacting BlinkStar Properties about "${property.title}".`,
+            "Your inquiry has been saved and the property contact has been notified.",
+            "",
+            "We will follow up soon.",
+          ].join("\n"),
+        })
+        .catch((autoReplyError) => {
+          console.error("Inquiry auto-reply email error:", autoReplyError);
+        });
       return res.json({ success: true, inquiryId: inquiry._id });
     } catch (emailError) {
       console.error("Inquiry email notification error:", emailError);

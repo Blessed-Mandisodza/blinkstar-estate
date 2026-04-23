@@ -20,9 +20,13 @@ const savedSearchSchema = new mongoose.Schema(
       minPrice: String,
       maxPrice: String,
       minBedrooms: String,
+      maxBedrooms: String,
       minBathrooms: String,
+      maxBathrooms: String,
       minArea: String,
       maxArea: String,
+      status: String,
+      furnished: String,
       sort: String,
     },
     alertsEnabled: {

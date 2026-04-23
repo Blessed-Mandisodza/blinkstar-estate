@@ -91,6 +91,19 @@ const PropertyCard = ({ property, isFavorite, onFavoriteToggle }) => {
             sx={{ position: "absolute", top: 12, left: 12, fontWeight: 600 }}
           />
         )}
+        {property.reviewStatus && property.reviewStatus !== "approved" && (
+          <Chip
+            label={property.reviewStatus === "pending" ? "Pending" : "Rejected"}
+            color={property.reviewStatus === "pending" ? "warning" : "error"}
+            size="small"
+            sx={{
+              position: "absolute",
+              top: property.status ? 48 : 12,
+              left: 12,
+              fontWeight: 700,
+            }}
+          />
+        )}
         {onFavoriteToggle && (
           <Tooltip
             title={isFavorite ? "Remove from favorites" : "Add to favorites"}

@@ -11,7 +11,7 @@ router.get("/agents", async (req, res) => {
     const agents = await User.find({
       $or: [{ role: { $in: ["agent", "admin"] } }, { _id: { $in: ownerIds } }],
     })
-      .select("name email phone whatsapp bio location avatarUrl role createdAt")
+      .select("name email phone whatsapp bio location avatarUrl role verified createdAt")
       .sort({ createdAt: -1 });
 
     res.json({ agents });
@@ -23,17 +23,20 @@ router.get("/agents", async (req, res) => {
 router.get("/agents/:id", async (req, res) => {
   try {
     const agent = await User.findById(req.params.id).select(
-      "name email phone whatsapp bio location avatarUrl role createdAt"
+      "name email phone whatsapp bio location avatarUrl role verified createdAt"
     );
 
     if (!agent) {
       return res.status(404).json({ message: "Agent not found" });
     }
 
-    const properties = await Property.find({ listedBy: agent._id })
+    const properties = await Property.find({
+      listedBy: agent._id,
+      $or: [{ reviewStatus: "approved" }, { reviewStatus: { $exists: false } }],
+    })
       .sort({ createdAt: -1 })
       .limit(12)
-      .populate("listedBy", "name email role");
+      .populate("listedBy", "name email role verified");
 
     res.json({ agent, properties });
   } catch (err) {

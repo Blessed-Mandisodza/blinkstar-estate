@@ -17,6 +17,11 @@ const initialState = {
   area: '',
   latitude: '',
   longitude: '',
+  contactName: '',
+  contactPhone: '',
+  contactEmail: '',
+  reviewStatus: '',
+  reviewNotes: '',
 };
 
 const compressImageFile = (file) =>
@@ -96,6 +101,11 @@ const PropertyForm = () => {
             area: data.area || '',
             latitude: data.latitude || '',
             longitude: data.longitude || '',
+            contactName: data.contactName || '',
+            contactPhone: data.contactPhone || '',
+            contactEmail: data.contactEmail || '',
+            reviewStatus: data.reviewStatus || '',
+            reviewNotes: data.reviewNotes || '',
           });
           setExistingImages(data.images || []);
           setLoading(false);
@@ -116,7 +126,10 @@ const PropertyForm = () => {
     e.preventDefault();
     setError('');
     const formData = new FormData();
-    Object.entries(form).forEach(([key, value]) => formData.append(key, value));
+    Object.entries(form).forEach(([key, value]) => {
+      if (['reviewStatus', 'reviewNotes'].includes(key)) return;
+      formData.append(key, value);
+    });
     try {
       const uploadFiles = await Promise.all(selectedFiles.map(compressImageFile));
       uploadFiles.forEach(file => formData.append('images', file));
@@ -143,6 +156,22 @@ const PropertyForm = () => {
         </Typography>
         <Divider sx={{ mb: 3 }} />
         {error && <Typography color="error" mb={2}>{error}</Typography>}
+        {form.reviewStatus && form.reviewStatus !== 'approved' && (
+          <Typography
+            mb={2}
+            sx={{
+              p: 1.5,
+              borderRadius: 2,
+              bgcolor: form.reviewStatus === 'pending' ? '#fff7ed' : '#fef2f2',
+              color: form.reviewStatus === 'pending' ? '#9a3412' : '#991b1b',
+              fontWeight: 700,
+            }}
+          >
+            {form.reviewStatus === 'pending'
+              ? 'This listing is waiting for admin approval.'
+              : `This listing was rejected.${form.reviewNotes ? ` ${form.reviewNotes}` : ''}`}
+          </Typography>
+        )}
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
@@ -212,6 +241,20 @@ const PropertyForm = () => {
             </Grid>
             <Grid item xs={6}>
               <TextField label="Longitude" name="longitude" value={form.longitude} onChange={handleChange} fullWidth type="number" helperText="For map view" />
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="h6" fontWeight={700}>
+                Contact Details
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField label="Contact Name" name="contactName" value={form.contactName} onChange={handleChange} fullWidth helperText="Optional listing contact" />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField label="Contact Phone" name="contactPhone" value={form.contactPhone} onChange={handleChange} fullWidth helperText="Call or WhatsApp number" />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField label="Contact Email" name="contactEmail" value={form.contactEmail} onChange={handleChange} fullWidth type="email" helperText="Optional reply email" />
             </Grid>
             <Grid item xs={12}>
               <Button type="submit" variant="contained" color="primary" fullWidth sx={{ py: 2, fontWeight: 700, fontSize: '1.1rem', mt: 2 }}>

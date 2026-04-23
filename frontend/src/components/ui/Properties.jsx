@@ -1,6 +1,7 @@
 import { useAuth } from "../../context/AuthContext";
 import React, { useEffect, useState } from "react";
 import Header from "./Header";
+import SeoHead from "./SeoHead";
 import PropertyList from "../property/PropertyList";
 import {
   Button,
@@ -54,7 +55,9 @@ const defaultFilters = {
   maxPrice: "",
   location: "",
   minBedrooms: "",
+  maxBedrooms: "",
   minBathrooms: "",
+  maxBathrooms: "",
   minArea: "",
   maxArea: "",
   sort: "createdAt",
@@ -148,6 +151,10 @@ const Properties = () => {
 
   return (
     <Box sx={{ background: "#f7f9fb", minHeight: "100vh" }}>
+      <SeoHead
+        title="Browse Properties | BlinkStar Properties"
+        description="Search BlinkStar property listings by location, price, bedrooms, bathrooms, furnished status, and listing type."
+      />
       <Header />
       <Box sx={{ py: { xs: 2, sm: 6 } }}>
         <Box maxWidth="lg" mx="auto" px={{ xs: 1, sm: 2, md: 0 }}>
@@ -276,7 +283,7 @@ const Properties = () => {
               <Grid item xs={6} sm={3} md={2}>
                 <TextField
                   select
-                  label="Beds"
+                  label="Min Beds"
                   name="minBedrooms"
                   value={filters.minBedrooms}
                   onChange={handleChange}
@@ -293,7 +300,24 @@ const Properties = () => {
               <Grid item xs={6} sm={3} md={2}>
                 <TextField
                   select
-                  label="Baths"
+                  label="Max Beds"
+                  name="maxBedrooms"
+                  value={filters.maxBedrooms}
+                  onChange={handleChange}
+                  fullWidth
+                  size="small"
+                >
+                  {roomOptions.map((value) => (
+                    <MenuItem key={`max-beds-${value || "any"}`} value={value}>
+                      {value || "Any"}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={6} sm={3} md={2}>
+                <TextField
+                  select
+                  label="Min Baths"
                   name="minBathrooms"
                   value={filters.minBathrooms}
                   onChange={handleChange}
@@ -303,6 +327,23 @@ const Properties = () => {
                   {roomOptions.map((value) => (
                     <MenuItem key={`baths-${value || "any"}`} value={value}>
                       {value ? `${value}+` : "Any"}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={6} sm={3} md={2}>
+                <TextField
+                  select
+                  label="Max Baths"
+                  name="maxBathrooms"
+                  value={filters.maxBathrooms}
+                  onChange={handleChange}
+                  fullWidth
+                  size="small"
+                >
+                  {roomOptions.map((value) => (
+                    <MenuItem key={`max-baths-${value || "any"}`} value={value}>
+                      {value || "Any"}
                     </MenuItem>
                   ))}
                 </TextField>

@@ -40,8 +40,10 @@ import {
   Share,
   WhatsApp,
 } from "@mui/icons-material";
+import VerifiedIcon from "@mui/icons-material/Verified";
 import Header from "../ui/Header";
 import Loader from "../ui/Loader";
+import SeoHead from "../ui/SeoHead";
 import PropertyCard from "./PropertyCard";
 import ContactForm from "./ContactForm";
 import { apiFetch, authFetch, resolveMediaUrl } from "../../utils/authFetch";
@@ -168,7 +170,11 @@ const PropertyDetail = () => {
     user && property?.listedBy && user._id === property.listedBy._id;
   const contactEmail =
     property?.contactEmail || property?.listedBy?.email || FALLBACK_CONTACT.email;
-  const contactPhone = property?.contactPhone || FALLBACK_CONTACT.phone;
+  const contactPhone =
+    property?.contactPhone ||
+    property?.listedBy?.whatsapp ||
+    property?.listedBy?.phone ||
+    FALLBACK_CONTACT.phone;
   const agentName =
     property?.contactName || property?.listedBy?.name || "BlinkStar Agent";
   const propertyUrl =
@@ -441,6 +447,12 @@ const PropertyDetail = () => {
 
   return (
     <>
+      <SeoHead
+        title={`${property.title} | BlinkStar Properties`}
+        description={`${formatPrice(property.price)} ${property.propertyType || "property"} in ${property.location}. ${String(property.description || "").slice(0, 130)}`}
+        image={getImageUrl(images[0]) || "/bs logo.png"}
+        url={propertyUrl}
+      />
       <Header />
       <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
         <Stack
@@ -475,6 +487,18 @@ const PropertyDetail = () => {
                 {property.location}
               </Typography>
             </Stack>
+            {property.reviewStatus && property.reviewStatus !== "approved" && (
+              <Chip
+                label={
+                  property.reviewStatus === "pending"
+                    ? "Pending approval"
+                    : "Not publicly listed"
+                }
+                color={property.reviewStatus === "pending" ? "warning" : "error"}
+                size="small"
+                sx={{ mt: 1, fontWeight: 700 }}
+              />
+            )}
           </Box>
 
           <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
@@ -768,9 +792,18 @@ const PropertyDetail = () => {
               >
                 {agentName}
               </Typography>
-              <Typography color="text.secondary" sx={{ mb: 2 }}>
-                Property Consultant
-              </Typography>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, flexWrap: "wrap", rowGap: 1 }}>
+                <Typography color="text.secondary">Property Consultant</Typography>
+                {property.listedBy?.verified && (
+                  <Chip
+                    icon={<VerifiedIcon />}
+                    label="Verified"
+                    color="success"
+                    size="small"
+                    sx={{ fontWeight: 700 }}
+                  />
+                )}
+              </Stack>
 
               <Stack spacing={1.5}>
                 <Button

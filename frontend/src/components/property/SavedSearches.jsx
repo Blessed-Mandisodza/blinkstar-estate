@@ -8,6 +8,7 @@ import {
   Chip,
   Container,
   Grid,
+  Switch,
   Stack,
   Typography,
 } from "@mui/material";
@@ -24,6 +25,15 @@ const buildSearchUrl = (filters = {}) => {
   });
 
   return `/properties${params.toString() ? `?${params.toString()}` : ""}`;
+};
+
+const formatDate = (date) => {
+  if (!date) return "Not sent yet";
+  return new Date(date).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 };
 
 export default function SavedSearches() {
@@ -53,6 +63,30 @@ export default function SavedSearches() {
 
     if (res.ok) {
       setSearches((current) => current.filter((search) => search._id !== id));
+    }
+  };
+
+  const toggleAlerts = async (search) => {
+    const nextAlertsEnabled = !search.alertsEnabled;
+    setSearches((current) =>
+      current.map((item) =>
+        item._id === search._id
+          ? { ...item, alertsEnabled: nextAlertsEnabled }
+          : item
+      )
+    );
+
+    const res = await authFetch(`/api/property/saved-searches/${search._id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ alertsEnabled: nextAlertsEnabled }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setSearches((current) =>
+        current.map((item) => (item._id === search._id ? data.search : item))
+      );
     }
   };
 
@@ -112,6 +146,22 @@ export default function SavedSearches() {
                         .map(([key, value]) => (
                           <Chip key={key} size="small" label={`${key}: ${value}`} />
                         ))}
+                    </Stack>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      justifyContent="space-between"
+                      alignItems="center"
+                      sx={{ mt: 2, flexWrap: "wrap", rowGap: 1 }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        Last alert: {formatDate(search.lastNotifiedAt)}
+                      </Typography>
+                      <Switch
+                        checked={Boolean(search.alertsEnabled)}
+                        onChange={() => toggleAlerts(search)}
+                        inputProps={{ "aria-label": "Toggle saved search alerts" }}
+                      />
                     </Stack>
                     <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
                       <Button

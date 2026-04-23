@@ -51,6 +51,7 @@ import { useAuth } from "../../context/AuthContext";
 import PropertyCard from "./PropertyCard";
 import Loader from "../ui/Loader";
 import { authFetch } from "../../utils/authFetch";
+import AdminModeration from "./AdminModeration";
 
 // Setup Socket.IO client
 
@@ -160,6 +161,7 @@ export default function Dashboard() {
     activeListings: 0,
     totalViews: 0,
     newInquiries: 0,
+    pendingApprovals: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -309,6 +311,18 @@ export default function Dashboard() {
       value: stats.newInquiries != null ? stats.newInquiries.toString() : "0",
       color: "#f44336",
     },
+    ...(user?.role === "admin"
+      ? [
+          {
+            title: "Pending Approvals",
+            value:
+              stats.pendingApprovals != null
+                ? stats.pendingApprovals.toString()
+                : "0",
+            color: "#7c3aed",
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -476,7 +490,7 @@ export default function Dashboard() {
 
               <Grid container spacing={2.5} sx={{ mb: 4 }}>
                 {statsData.map((stat) => (
-                  <Grid item xs={12} sm={6} md={3} key={stat.title}>
+                  <Grid item xs={12} sm={6} md={user?.role === "admin" ? 4 : 3} key={stat.title}>
                     <StatsCard>
                       <CardContent sx={{ p: 2.5 }}>
                         <Typography
@@ -502,6 +516,8 @@ export default function Dashboard() {
                   </Grid>
                 ))}
               </Grid>
+
+            {user?.role === "admin" && <AdminModeration />}
 
             {/* Lead Inbox Section */}
             <Box sx={{ mb: 4 }}>

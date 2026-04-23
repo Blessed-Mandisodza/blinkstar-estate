@@ -60,8 +60,10 @@ router.post("/register", validateRegistration, async (req, res) => {
       token,
       user: {
         id: user._id,
+        _id: user._id,
         email: user.email,
         name: user.name,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -105,6 +107,7 @@ router.post("/login", validateLogin, async (req, res) => {
       token,
       user: {
         id: user._id,
+        _id: user._id,
         email: user.email,
         name: user.name,
         role: user.role,

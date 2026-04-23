@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   Container,
   Grid,
   Stack,
@@ -12,6 +13,7 @@ import {
 } from "@mui/material";
 import Header from "../ui/Header";
 import Loader from "../ui/Loader";
+import SeoHead from "../ui/SeoHead";
 import { apiFetch } from "../../utils/authFetch";
 
 export default function Agents() {
@@ -27,6 +29,10 @@ export default function Agents() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f6f8fb" }}>
+      <SeoHead
+        title="Agents | BlinkStar Properties"
+        description="Meet BlinkStar property agents and browse their active listings."
+      />
       <Header />
       <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
         <Typography variant="h4" fontWeight={800} sx={{ mb: 1 }}>
@@ -60,6 +66,14 @@ export default function Agents() {
                         <Typography color="text.secondary" noWrap>
                           {agent.location || agent.email}
                         </Typography>
+                        {agent.verified && (
+                          <Chip
+                            size="small"
+                            color="success"
+                            label="Verified"
+                            sx={{ mt: 0.75, fontWeight: 700 }}
+                          />
+                        )}
                       </Box>
                     </Stack>
                     <Typography
