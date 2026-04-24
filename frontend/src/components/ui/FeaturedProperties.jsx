@@ -3,16 +3,21 @@ import {
   Box,
   Button,
   Container,
-  Grid,
   Paper,
-  Skeleton,
+  Stack,
   Typography,
+  keyframes,
 } from "@mui/material";
 import { ArrowForward } from "@mui/icons-material";
 import PropertyCard from "../property/PropertyCard";
 import { useAuth } from "../../context/AuthContext";
 import { apiFetch, authFetch } from "../../utils/authFetch";
 import Reveal from "./Reveal";
+
+const shimmer = keyframes`
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+`;
 
 const guestFavoritesKey = "guestFavorites";
 
@@ -104,41 +109,88 @@ export default function FeaturedProperties() {
       >
         <Container maxWidth="lg">
           <Box sx={{ textAlign: "center", mb: { xs: 4, md: 5 } }}>
-            <Skeleton
-              variant="text"
-              width={260}
-              height={52}
-              sx={{ mx: "auto" }}
-            />
-            <Skeleton
-              variant="text"
-              width={320}
-              height={28}
-              sx={{ mx: "auto", maxWidth: "80%" }}
-            />
+            <Stack spacing={1.25} alignItems="center">
+              <Box
+                sx={{
+                  width: 74,
+                  height: 74,
+                  borderRadius: "50%",
+                  background:
+                    "linear-gradient(135deg, rgba(37,99,235,0.16), rgba(16,185,129,0.16))",
+                  border: "1px solid rgba(37,99,235,0.12)",
+                  display: "grid",
+                  placeItems: "center",
+                  position: "relative",
+                  overflow: "hidden",
+                  "&::after": {
+                    content: '""',
+                    position: "absolute",
+                    inset: 0,
+                    background:
+                      "linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent)",
+                    animation: `${shimmer} 1.5s linear infinite`,
+                  },
+                }}
+              />
+              <Typography variant="h5" fontWeight={900}>
+                Loading recent properties
+              </Typography>
+              <Typography color="text.secondary">
+                Pulling in the newest listings for the homepage.
+              </Typography>
+            </Stack>
           </Box>
-          <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+                md: "repeat(3, minmax(0, 1fr))",
+              },
+              gap: { xs: 2, sm: 3, md: 4 },
+              justifyItems: "center",
+            }}
+          >
             {Array.from({ length: 3 }).map((_, index) => (
-              <Grid item xs={12} sm={6} md={4} key={index}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    borderRadius: 2,
-                    overflow: "hidden",
-                    border: "1px solid #e5e7eb",
-                  }}
-                >
-                  <Skeleton variant="rectangular" height={180} />
-                  <Box sx={{ p: 2 }}>
-                    <Skeleton variant="text" height={30} />
-                    <Skeleton variant="text" width="70%" />
-                    <Skeleton variant="text" width="45%" height={32} />
-                    <Skeleton variant="text" width="60%" />
+              <Paper
+                key={index}
+                elevation={0}
+                sx={{
+                  width: "100%",
+                  maxWidth: { xs: 380, sm: "none" },
+                  minHeight: 392,
+                  borderRadius: 2,
+                  overflow: "hidden",
+                  border: "1px solid #e5e7eb",
+                  position: "relative",
+                  background: "#fff",
+                  "&::after": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "35%",
+                    height: "100%",
+                    background:
+                      "linear-gradient(90deg, transparent, rgba(255,255,255,0.68), transparent)",
+                    animation: `${shimmer} 1.45s linear infinite`,
+                  },
+                }}
+              >
+                <Box sx={{ height: 186, bgcolor: "#e2e8f0" }} />
+                <Box sx={{ p: 2.25 }}>
+                  <Box sx={{ height: 26, width: "72%", bgcolor: "#e2e8f0", borderRadius: 1, mb: 1.5 }} />
+                  <Box sx={{ height: 16, width: "54%", bgcolor: "#edf2f7", borderRadius: 1, mb: 2 }} />
+                  <Box sx={{ height: 28, width: "38%", bgcolor: "#dbeafe", borderRadius: 1, mb: 2 }} />
+                  <Box sx={{ display: "flex", gap: 1.5 }}>
+                    <Box sx={{ height: 16, width: 70, bgcolor: "#edf2f7", borderRadius: 1 }} />
+                    <Box sx={{ height: 16, width: 74, bgcolor: "#edf2f7", borderRadius: 1 }} />
                   </Box>
-                </Paper>
-              </Grid>
+                </Box>
+              </Paper>
             ))}
-          </Grid>
+          </Box>
         </Container>
       </Box>
     );
@@ -225,29 +277,31 @@ export default function FeaturedProperties() {
             </Typography>
           </Box>
         ) : (
-          <Grid
-            container
-            spacing={{ xs: 2, sm: 3, md: 4 }}
-            justifyContent="center"
-            alignItems="stretch"
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+                md: "repeat(3, minmax(0, 1fr))",
+              },
+              gap: { xs: 2, sm: 3, md: 4 },
+              justifyItems: "center",
+            }}
           >
             {properties.slice(0, 3).map((property, index) => (
-              <Grid
-                item
-                xs={12}
-                sm={6}
-                md={4}
+              <Box
                 key={property._id}
                 sx={{
-                  display: "flex",
-                  justifyContent: "center",
+                  width: "100%",
+                  maxWidth: { xs: 380, sm: "none" },
                 }}
               >
                 <Reveal delay={(index % 4) * 80}>
                   <Box
                     sx={{
                       width: "100%",
-                      maxWidth: { xs: "400px", sm: "100%" },
+                      height: "100%",
                     }}
                   >
                     <PropertyCard
@@ -257,9 +311,9 @@ export default function FeaturedProperties() {
                     />
                   </Box>
                 </Reveal>
-              </Grid>
+              </Box>
             ))}
-          </Grid>
+          </Box>
         )}
 
         <Box

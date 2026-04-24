@@ -387,7 +387,6 @@ router.get("/admin/moderation", auth, requireAdmin, async (req, res) => {
         .select(
           "title price location images imageUrl propertyType status featured furnished reviewStatus reviewNotes bedrooms bathrooms area createdAt listedBy"
         )
-        .slice("images", 1)
         .populate("listedBy", "name email role verified")
         .sort({ createdAt: -1 })
         .skip((pageNumber - 1) * pageSize)

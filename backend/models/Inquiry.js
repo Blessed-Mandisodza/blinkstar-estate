@@ -45,6 +45,18 @@ const inquirySchema = new mongoose.Schema(
     preferredTime: { type: String, trim: true },
     pageUrl: { type: String, trim: true },
     userAgent: { type: String, trim: true },
+    replies: [
+      {
+        senderRole: {
+          type: String,
+          enum: ["client", "agent", "admin", "system"],
+          default: "agent",
+        },
+        senderName: { type: String, trim: true },
+        message: { type: String, trim: true, required: true },
+        sentAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

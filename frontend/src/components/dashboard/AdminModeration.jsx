@@ -12,9 +12,11 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import { resolveMediaUrl } from "../../utils/authFetch";
 import { authFetch } from "../../utils/authFetch";
 
 const reviewStatuses = [
@@ -37,6 +39,14 @@ const formatDate = (date) => {
     day: "numeric",
     year: "numeric",
   });
+};
+
+const getImageUrl = (img) => {
+  if (!img) return "";
+  if (img.startsWith("http") || img.startsWith("data:") || img.startsWith("blob:")) {
+    return img;
+  }
+  return resolveMediaUrl(img.startsWith("/uploads") ? img : `/uploads/${img}`);
 };
 
 export default function AdminModeration() {
@@ -221,6 +231,40 @@ export default function AdminModeration() {
                     Submitted {formatDate(property.createdAt)} by{" "}
                     {property.listedBy?.name || property.listedBy?.email || "Unknown"}
                   </Typography>
+                  {property.images?.length > 0 && (
+                    <Box sx={{ mt: 1.75 }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <PhotoLibraryIcon fontSize="small" color="action" />
+                        <Typography variant="body2" color="text.secondary">
+                          Review listing images before approval
+                        </Typography>
+                      </Stack>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                          gap: 1,
+                        }}
+                      >
+                        {property.images.slice(0, 6).map((image, index) => (
+                          <Box
+                            key={`${property._id}-image-${index}`}
+                            component="img"
+                            src={getImageUrl(image)}
+                            alt={`${property.title} ${index + 1}`}
+                            sx={{
+                              width: "100%",
+                              aspectRatio: "1 / 1",
+                              objectFit: "cover",
+                              borderRadius: 1.5,
+                              border: "1px solid #e5e7eb",
+                              bgcolor: "#e5e7eb",
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
                   <TextField
                     size="small"
                     label="Review notes"

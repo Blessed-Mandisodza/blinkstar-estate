@@ -128,6 +128,7 @@ return (
         sx={{
           position: 'absolute',
           left: 20,
+          display: { xs: 'none', md: 'inline-flex' },
           zIndex: 3,
           color: 'white',
           backgroundColor: 'rgba(0, 0, 0, 0.3)',
@@ -144,6 +145,7 @@ return (
         sx={{
           position: 'absolute',
           right: 20,
+          display: { xs: 'none', md: 'inline-flex' },
           zIndex: 3,
           color: 'white',
           backgroundColor: 'rgba(0, 0, 0, 0.3)',

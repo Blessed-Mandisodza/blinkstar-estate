@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Box, Container, Grid, Paper, Typography } from "@mui/material";
+import { Box, Container, Paper, Typography } from "@mui/material";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -62,50 +62,64 @@ export default function PropertyMap() {
             <Loader size="large" />
           </Box>
         ) : (
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={7} lg={8}>
-              <Paper sx={{ borderRadius: 2, overflow: "hidden", height: 560 }}>
-                <MapContainer
-                  center={center}
-                  zoom={mappedProperties.length ? 12 : 11}
-                  style={{ height: "100%", width: "100%" }}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  {mappedProperties.map((property) => (
-                    <Marker
-                      key={property._id}
-                      position={[
-                        Number(property.latitude),
-                        Number(property.longitude),
-                      ]}
-                    >
-                      <Popup>
-                        <Typography fontWeight={800}>{property.title}</Typography>
-                        <Typography>{property.location}</Typography>
-                        <Typography color="primary">
-                          ${Number(property.price || 0).toLocaleString()}
-                        </Typography>
-                      </Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} md={5} lg={4}>
-              <Grid container spacing={2}>
-                {(mappedProperties.length ? mappedProperties : properties)
-                  .slice(0, 6)
-                  .map((property) => (
-                    <Grid item xs={12} sm={6} md={12} key={property._id}>
-                      <PropertyCard property={property} />
-                    </Grid>
-                  ))}
-              </Grid>
-            </Grid>
-          </Grid>
+          <Box>
+            <Paper
+              sx={{
+                borderRadius: 2,
+                overflow: "hidden",
+                height: { xs: 380, md: 560 },
+                mb: { xs: 2.5, md: 3 },
+              }}
+            >
+              <MapContainer
+                center={center}
+                zoom={mappedProperties.length ? 12 : 11}
+                style={{ height: "100%", width: "100%" }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                {mappedProperties.map((property) => (
+                  <Marker
+                    key={property._id}
+                    position={[
+                      Number(property.latitude),
+                      Number(property.longitude),
+                    ]}
+                  >
+                    <Popup>
+                      <Typography fontWeight={800}>{property.title}</Typography>
+                      <Typography>{property.location}</Typography>
+                      <Typography color="primary">
+                        ${Number(property.price || 0).toLocaleString()}
+                      </Typography>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </Paper>
+
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, minmax(0, 1fr))",
+                  md: "repeat(3, minmax(0, 1fr))",
+                },
+                gap: 2.5,
+              }}
+            >
+              {(mappedProperties.length ? mappedProperties : properties)
+                .slice(0, 6)
+                .map((property) => (
+                  <Box key={property._id} sx={{ minWidth: 0 }}>
+                    <PropertyCard property={property} />
+                  </Box>
+                ))}
+            </Box>
+          </Box>
         )}
       </Container>
     </Box>

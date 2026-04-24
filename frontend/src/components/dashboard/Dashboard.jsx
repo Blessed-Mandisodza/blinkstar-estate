@@ -822,9 +822,19 @@ export default function Dashboard() {
                   Add Property
                 </Button>
               </Box>
-              <Grid container spacing={3} alignItems="stretch">
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2, minmax(0, 1fr))",
+                    md: "repeat(3, minmax(0, 1fr))",
+                  },
+                  gap: 3,
+                }}
+              >
                 {properties.length === 0 ? (
-                  <Grid item xs={12}>
+                  <Box>
                     <Card sx={{ borderRadius: 2, border: "1px solid #e5e7eb" }}>
                       <CardContent>
                         <Typography sx={{ textAlign: "center", color: "#777" }}>
@@ -832,10 +842,10 @@ export default function Dashboard() {
                         </Typography>
                       </CardContent>
                     </Card>
-                  </Grid>
+                  </Box>
                 ) : (
                   properties.map((property) => (
-                    <Grid item xs={12} sm={6} md={4} lg={3} key={property._id} sx={{ display: "flex" }}>
+                    <Box key={property._id} sx={{ display: "flex", minWidth: 0 }}>
                       <PropertyCard
                         property={property}
                         onEdit={() =>
@@ -868,10 +878,10 @@ export default function Dashboard() {
                           }
                         }}
                       />
-                    </Grid>
+                    </Box>
                   ))
                 )}
-              </Grid>
+              </Box>
             </Box>
             </>
           )}
