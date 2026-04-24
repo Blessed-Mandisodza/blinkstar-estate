@@ -56,7 +56,7 @@ router.get("/summary", auth, async (req, res) => {
 
 router.post("/:id/reply", auth, async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, channel = "inbox" } = req.body;
 
     if (!String(message || "").trim()) {
       return res.status(400).json({ error: "Reply message is required" });
@@ -88,7 +88,7 @@ router.post("/:id/reply", auth, async (req, res) => {
 
     const transporter = getMailTransporter();
 
-    if (transporter && inquiry.email) {
+    if (channel !== "whatsapp" && transporter && inquiry.email) {
       try {
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
