@@ -1,77 +1,89 @@
-const crypto = require("crypto");
+const path = require("path");
+const { randomUUID } = require("crypto");
 
 const toDataUrl = (file) =>
   `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
 
-const hasCloudinaryConfig = () =>
-  Boolean(
-    process.env.CLOUDINARY_CLOUD_NAME &&
-      process.env.CLOUDINARY_API_KEY &&
-      process.env.CLOUDINARY_API_SECRET
-  );
+const hasImageKitConfig = () => Boolean(process.env.IMAGEKIT_PRIVATE_KEY);
 
-const signCloudinaryParams = (params) => {
-  const payload = Object.keys(params)
-    .sort()
-    .map((key) => `${key}=${params[key]}`)
-    .join("&");
+const getImageExtension = (file) => {
+  const ext = path.extname(file.originalname || "").toLowerCase();
+  if (ext && ext.length <= 8) return ext;
 
-  return crypto
-    .createHash("sha1")
-    .update(`${payload}${process.env.CLOUDINARY_API_SECRET}`)
-    .digest("hex");
+  const mimeExt = String(file.mimetype || "").split("/")[1];
+  return mimeExt ? `.${mimeExt.replace(/[^a-z0-9]/gi, "")}` : ".jpg";
 };
 
-const uploadToCloudinary = async (file) => {
-  if (typeof fetch !== "function" || typeof FormData !== "function") {
-    throw new Error("Cloudinary uploads require Node fetch/FormData support");
+const normalizeFolder = (folder = "property-images") => {
+  const cleaned = folder
+    .replace(/\\/g, "/")
+    .replace(/^\/+|\/+$/g, "")
+    .replace(/[^a-z0-9/_-]/gi, "-");
+
+  return cleaned ? `/${cleaned}` : "";
+};
+
+const buildImageKitUrl = (filePath, fallbackUrl) => {
+  if (fallbackUrl) return fallbackUrl;
+  if (!filePath || !process.env.IMAGEKIT_URL_ENDPOINT) return "";
+
+  const baseUrl = process.env.IMAGEKIT_URL_ENDPOINT.replace(/\/+$/, "");
+  return `${baseUrl}${filePath.startsWith("/") ? filePath : `/${filePath}`}`;
+};
+
+const buildBasicAuthHeader = () =>
+  `Basic ${Buffer.from(`${process.env.IMAGEKIT_PRIVATE_KEY}:`).toString("base64")}`;
+
+const uploadToImageKit = async (file) => {
+  const formData = new FormData();
+  const extension = getImageExtension(file);
+  const fileName = `${randomUUID()}${extension}`;
+
+  formData.append(
+    "file",
+    new Blob([file.buffer], { type: file.mimetype }),
+    file.originalname || fileName
+  );
+  formData.append("fileName", fileName);
+  formData.append("useUniqueFileName", "true");
+
+  const folder = normalizeFolder(process.env.IMAGEKIT_UPLOAD_FOLDER);
+  if (folder) {
+    formData.append("folder", folder);
   }
 
-  const timestamp = Math.round(Date.now() / 1000);
-  const folder = process.env.CLOUDINARY_FOLDER || "blinkstar-properties";
-  const params = { folder, timestamp };
-  const signature = signCloudinaryParams(params);
-  const formData = new FormData();
-  const blob = new Blob([file.buffer], { type: file.mimetype });
-
-  formData.append("file", blob, file.originalname || "property-image");
-  formData.append("api_key", process.env.CLOUDINARY_API_KEY);
-  formData.append("timestamp", String(timestamp));
-  formData.append("folder", folder);
-  formData.append("signature", signature);
-
-  const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload`,
-    {
-      method: "POST",
-      body: formData,
-    }
-  );
+  const response = await fetch("https://upload.imagekit.io/api/v2/files/upload", {
+    method: "POST",
+    headers: {
+      Authorization: buildBasicAuthHeader(),
+    },
+    body: formData,
+  });
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error?.message || "Cloudinary upload failed");
+    throw new Error(data.message || "ImageKit upload failed");
   }
 
-  return data.secure_url;
+  return buildImageKitUrl(data.filePath, data.url);
 };
 
 const uploadImages = async (files = []) => {
   if (!files.length) return [];
 
-  if (!hasCloudinaryConfig()) {
+  if (!hasImageKitConfig()) {
     return files.map(toDataUrl);
   }
 
   try {
-    return await Promise.all(files.map(uploadToCloudinary));
+    return await Promise.all(files.map(uploadToImageKit));
   } catch (error) {
-    console.error("Image upload provider error:", error);
+    console.error("ImageKit upload error:", error);
     return files.map(toDataUrl);
   }
 };
 
 module.exports = {
-  hasCloudinaryConfig,
+  hasImageKitConfig,
   uploadImages,
 };

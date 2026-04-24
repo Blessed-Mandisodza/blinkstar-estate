@@ -32,10 +32,9 @@ Environment variables:
 - `CORS_ORIGINS=https://your-frontend-domain.vercel.app`
 - `EMAIL_USER`
 - `EMAIL_PASS`
-- `CLOUDINARY_CLOUD_NAME`
-- `CLOUDINARY_API_KEY`
-- `CLOUDINARY_API_SECRET`
-- `CLOUDINARY_FOLDER=blinkstar-properties`
+- `IMAGEKIT_PRIVATE_KEY`
+- `IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_imagekit_id`
+- `IMAGEKIT_UPLOAD_FOLDER=/property-images`
 
 The backend already includes `backend/vercel.json` and routes all requests through `api/index.js`.
 
@@ -50,9 +49,12 @@ After changing backend environment variables in Vercel, redeploy the backend pro
 
 ## 4. Important Upload Note
 
-This app uploads property images to Cloudinary when the Cloudinary environment
+This app uploads property images to ImageKit when the ImageKit environment
 variables are configured on the backend project.
 
-If Cloudinary is not configured, image uploads fall back to inline data URLs so
-local development still works. Do not rely on that fallback for production,
-because it can make MongoDB records very large.
+Get your private key and URL endpoint from the ImageKit dashboard, then set the
+folder you want new uploads to land in with `IMAGEKIT_UPLOAD_FOLDER`.
+
+If ImageKit is not configured, image uploads fall back to inline data URLs so local
+development still works. Do not rely on that fallback for production, because it
+can make MongoDB records very large.
