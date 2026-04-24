@@ -525,6 +525,27 @@ router.patch("/inquiries/:id", auth, async (req, res) => {
   }
 });
 
+router.delete("/inquiries/:id", auth, async (req, res) => {
+  try {
+    const query =
+      req.user.role === "admin"
+        ? { _id: req.params.id }
+        : { _id: req.params.id, propertyOwner: req.user._id };
+
+    const inquiry = await Inquiry.findOneAndDelete(query);
+
+    if (!inquiry) {
+      return res
+        .status(404)
+        .json({ error: "Inquiry not found or not authorized" });
+    }
+
+    res.json({ message: "Inquiry removed" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Track contact action clicks such as WhatsApp, call, and email
 router.post("/:id/contact-click", async (req, res) => {
   try {

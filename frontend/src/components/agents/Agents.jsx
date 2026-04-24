@@ -47,12 +47,18 @@ export default function Agents() {
             <Loader size="large" />
           </Box>
         ) : (
-          <Grid container spacing={3}>
+          <Grid container spacing={3} justifyContent={{ xs: "center", md: "flex-start" }}>
             {agents.map((agent) => (
-              <Grid item xs={12} sm={6} md={4} key={agent._id}>
-                <Card sx={{ height: "100%", borderRadius: 2 }}>
+              <Grid item xs={12} sm={6} md={4} key={agent._id} sx={{ display: "flex", justifyContent: { xs: "center", md: "stretch" } }}>
+                <Card sx={{ height: "100%", width: "100%", maxWidth: { xs: 380, md: "none" }, borderRadius: 2 }}>
                   <CardContent>
-                    <Stack direction="row" spacing={2} alignItems="center">
+                    <Stack
+                      direction="row"
+                      spacing={2}
+                      alignItems="center"
+                      justifyContent={{ xs: "center", md: "flex-start" }}
+                      sx={{ textAlign: { xs: "center", md: "left" } }}
+                    >
                       <Avatar
                         src={agent.avatarUrl}
                         sx={{ width: 64, height: 64, bgcolor: "primary.main" }}
@@ -81,6 +87,7 @@ export default function Agents() {
                       sx={{
                         mt: 2,
                         color: "text.secondary",
+                        textAlign: { xs: "center", md: "left" },
                         display: "-webkit-box",
                         WebkitBoxOrient: "vertical",
                         WebkitLineClamp: 3,
@@ -92,7 +99,7 @@ export default function Agents() {
                     <Button
                       href={`/agents/${agent._id}`}
                       variant="contained"
-                      sx={{ mt: 2 }}
+                      sx={{ mt: 2, alignSelf: { xs: "center", md: "flex-start" } }}
                     >
                       View Profile
                     </Button>

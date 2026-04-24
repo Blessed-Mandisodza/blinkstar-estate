@@ -5,6 +5,8 @@ import Home from "./components/ui/Home";
 import SignIn from "./components/sign/SignIn";
 import SignUp from "./components/sign/SignUp";
 import Dashboard from "./components/dashboard/Dashboard";
+import MessagesPage from "./components/dashboard/MessagesPage";
+import NotificationsPage from "./components/dashboard/NotificationsPage";
 import Profile from "./components/dashboard/Profile";
 import Settings from "./components/dashboard/Settings";
 import PrivateRoute from "./components/auth/PrivateRoute";
@@ -70,7 +72,15 @@ function App() {
               path="/messages"
               element={
                 <PrivateRoute>
-                  <Dashboard />
+                  <MessagesPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <PrivateRoute>
+                  <NotificationsPage />
                 </PrivateRoute>
               }
             />

@@ -23,6 +23,8 @@ import { resolveMediaUrl } from "../../utils/authFetch";
 
 const StyledCard = styled(Card)(({ theme }) => ({
   height: "100%",
+  width: "100%",
+  minHeight: 390,
   display: "flex",
   flexDirection: "column",
   position: "relative",
@@ -32,8 +34,8 @@ const StyledCard = styled(Card)(({ theme }) => ({
   },
 }));
 
-const PropertyImage = styled(CardMedia)(({ theme }) => ({
-  paddingTop: "56.25%", // 16:9 aspect ratio
+const PropertyImage = styled(CardMedia)(() => ({
+  aspectRatio: "16 / 9",
   position: "relative",
 }));
 
@@ -69,6 +71,8 @@ const PropertyInfo = styled(Box)(({ theme }) => ({
 
 export default function PropertyCard({ property, onEdit, onDelete }) {
   const [isFavorite, setIsFavorite] = React.useState(property.isFavorite);
+  const primaryImage =
+    (property.images && property.images[0]) || property.imageUrl || "";
 
   const toggleFavorite = (event) => {
     event.stopPropagation();
@@ -95,12 +99,23 @@ export default function PropertyCard({ property, onEdit, onDelete }) {
           )}
         </FavoriteButton>
         <PropertyImage
-          image={resolveMediaUrl(property.images && property.images[0])}
+          image={resolveMediaUrl(primaryImage)}
           title={property.title}
         />
       </Box>
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Typography variant="h6" gutterBottom component="div" noWrap>
+      <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          component="div"
+          sx={{
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: 2,
+            overflow: "hidden",
+            minHeight: 56,
+          }}
+        >
           {property.title}
         </Typography>
         <Stack spacing={1}>
@@ -111,7 +126,7 @@ export default function PropertyCard({ property, onEdit, onDelete }) {
             </Typography>
           </PropertyInfo>
           <Typography variant="h6" color="primary" sx={{ fontWeight: "bold" }}>
-            ${property.price.toLocaleString()}
+            ${Number(property.price || 0).toLocaleString()}
           </Typography>
           <Box
             sx={{
@@ -122,15 +137,15 @@ export default function PropertyCard({ property, onEdit, onDelete }) {
           >
             <PropertyInfo>
               <Hotel fontSize="small" />
-              <span>{property.beds} Beds</span>
+              <span>{property.bedrooms ?? property.beds ?? 0} Beds</span>
             </PropertyInfo>
             <PropertyInfo>
               <Bathtub fontSize="small" />
-              <span>{property.baths} Baths</span>
+              <span>{property.bathrooms ?? property.baths ?? 0} Baths</span>
             </PropertyInfo>
             <PropertyInfo>
               <DirectionsCar fontSize="small" />
-              <span>{property.parking} Park</span>
+              <span>{property.area ? `${property.area} sqft` : "Area"}</span>
             </PropertyInfo>
           </Box>
         </Stack>

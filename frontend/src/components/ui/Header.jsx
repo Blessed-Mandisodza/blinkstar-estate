@@ -33,11 +33,11 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LoginIcon from "@mui/icons-material/Login";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { useTheme } from "@mui/material/styles";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { getUserAvatarSrc, getUserInitial } from "../../utils/userAvatar";
 
 const navLinks = [
   { label: "Home", path: "/", icon: <HomeIcon /> },
@@ -164,10 +164,11 @@ const Header = () => {
                     size="small"
                     aria-label="Open account menu"
                   >
-                    <Avatar sx={{ width: 34, height: 34 }}>
-                      {(
-                        user?.name?.[0] || user?.email?.[0] || "U"
-                      ).toUpperCase()}
+                    <Avatar
+                      src={getUserAvatarSrc(user)}
+                      sx={{ width: 34, height: 34 }}
+                    >
+                      {getUserInitial(user)}
                     </Avatar>
                   </IconButton>
                 </Tooltip>
@@ -236,10 +237,11 @@ const Header = () => {
                       py: 1.5,
                     }}
                   >
-                    <Avatar sx={{ bgcolor: "primary.main" }}>
-                      {(
-                        user?.name?.[0] || user?.email?.[0] || "U"
-                      ).toUpperCase()}
+                    <Avatar
+                      src={getUserAvatarSrc(user)}
+                      sx={{ bgcolor: "primary.main" }}
+                    >
+                      {getUserInitial(user)}
                     </Avatar>
                     <Box sx={{ minWidth: 0 }}>
                       <Typography fontWeight={700} noWrap>
@@ -284,18 +286,6 @@ const Header = () => {
                             <LoginIcon />
                           </ListItemIcon>
                           <ListItemText primary="Sign In" />
-                        </ListItemButton>
-                      </ListItem>
-                      <ListItem disablePadding sx={{ mb: 0.5 }}>
-                        <ListItemButton
-                          selected={isActive("/signup")}
-                          onClick={() => handleNav("/signup")}
-                          sx={{ borderRadius: 2 }}
-                        >
-                          <ListItemIcon sx={{ minWidth: 40 }}>
-                            <PersonAddIcon />
-                          </ListItemIcon>
-                          <ListItemText primary="Sign Up" />
                         </ListItemButton>
                       </ListItem>
                     </>
@@ -392,24 +382,14 @@ const Header = () => {
             </Box>
             <Box display="flex" alignItems="center" gap={1}>
               {showAuthButtons ? (
-                <>
-                  <Button
-                    color="primary"
-                    variant="outlined"
-                    onClick={() => navigate("/signin")}
-                    sx={{ fontWeight: 700 }}
-                  >
-                    Sign In
-                  </Button>
-                  <Button
-                    color="primary"
-                    variant="contained"
-                    onClick={() => navigate("/signup")}
-                    sx={{ fontWeight: 700 }}
-                  >
-                    Sign Up
-                  </Button>
-                </>
+                <Button
+                  color="primary"
+                  variant="outlined"
+                  onClick={() => navigate("/signin")}
+                  sx={{ fontWeight: 700 }}
+                >
+                  Sign In
+                </Button>
               ) : user ? (
                 <>
                   <Tooltip title={user?.name || user?.email || "Account"}>
@@ -418,10 +398,8 @@ const Header = () => {
                       size="large"
                       sx={{ ml: 1 }}
                     >
-                      <Avatar>
-                        {(
-                          user?.name?.[0] || user?.email?.[0] || "U"
-                        ).toUpperCase()}
+                      <Avatar src={getUserAvatarSrc(user)}>
+                        {getUserInitial(user)}
                       </Avatar>
                     </IconButton>
                   </Tooltip>

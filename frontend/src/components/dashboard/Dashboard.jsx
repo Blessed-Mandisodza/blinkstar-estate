@@ -52,6 +52,7 @@ import PropertyCard from "./PropertyCard";
 import Loader from "../ui/Loader";
 import { authFetch } from "../../utils/authFetch";
 import AdminModeration from "./AdminModeration";
+import { getUserAvatarSrc, getUserInitial } from "../../utils/userAvatar";
 
 // Setup Socket.IO client
 
@@ -165,6 +166,8 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
 
+  const newLeadCount = inquiries.filter((inquiry) => inquiry.status === "New").length;
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true);
@@ -262,6 +265,34 @@ export default function Dashboard() {
     }
   };
 
+  const removeInquiry = async (inquiryId) => {
+    const confirmed = window.confirm("Remove this lead from the inbox?");
+
+    if (!confirmed) return;
+
+    setSavingLeadId(inquiryId);
+    setLeadError("");
+
+    try {
+      const res = await authFetch(`/api/property/inquiries/${inquiryId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to remove inquiry");
+      }
+
+      setInquiries((current) =>
+        current.filter((inquiry) => inquiry._id !== inquiryId)
+      );
+    } catch (err) {
+      setLeadError(err.message || "Failed to remove inquiry");
+    } finally {
+      setSavingLeadId("");
+    }
+  };
+
   const drawer = (
     <Box>
       <Toolbar sx={{ justifyContent: "center", py: 2 }}>
@@ -326,7 +357,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{ display: "flex", width: "100%", overflowX: "clip" }}>
       <CssBaseline />
       <StyledAppBar position="fixed" open={open}>
         <Toolbar
@@ -334,10 +365,10 @@ export default function Dashboard() {
             minHeight: 64,
             display: "flex",
             justifyContent: "space-between",
-            px: 2,
+            px: { xs: 1.25, sm: 2 },
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 2 }, minWidth: 0 }}>
             <IconButton
               color="inherit"
               aria-label="open drawer"
@@ -356,31 +387,37 @@ export default function Dashboard() {
                 textDecoration: "none",
                 color: "inherit",
                 gap: 1,
+                minWidth: 0,
               }}
             >
               <Box
                 component="img"
                 src={bsLogo}
                 alt="Logo"
-                sx={{ height: 56, width: 56, mr: 1 }}
+                sx={{ height: { xs: 40, sm: 56 }, width: { xs: 40, sm: 56 }, mr: { xs: 0.5, sm: 1 } }}
               />
               <Typography
                 variant="h6"
                 noWrap
-                sx={{ fontWeight: 700, letterSpacing: 1 }}
+                sx={{
+                  fontWeight: 700,
+                  letterSpacing: 0,
+                  fontSize: { xs: "0.98rem", sm: "1.25rem" },
+                  maxWidth: { xs: "calc(100vw - 220px)", sm: "none" },
+                }}
               >
                 BlinkStar Properties
               </Typography>
             </Box>
           </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="error">
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, pr: { xs: 0.5, sm: 1 } }}>
+            <IconButton color="inherit" onClick={() => navigate("/notifications")}>
+              <Badge badgeContent={newLeadCount} color="error">
                 <NotificationsIcon />
               </Badge>
             </IconButton>
-            <IconButton color="inherit">
-              <Badge badgeContent={2} color="error">
+            <IconButton color="inherit" onClick={() => navigate("/messages")}>
+              <Badge badgeContent={newLeadCount} color="error">
                 <MessageIcon />
               </Badge>
             </IconButton>
@@ -390,6 +427,7 @@ export default function Dashboard() {
               sx={{ ml: 1 }}
             >
               <Avatar
+                src={getUserAvatarSrc(user)}
                 sx={{
                   width: 36,
                   height: 36,
@@ -398,7 +436,7 @@ export default function Dashboard() {
                   fontWeight: 700,
                 }}
               >
-                {user?.name ? user.name[0].toUpperCase() : "U"}
+                {getUserInitial(user)}
               </Avatar>
             </IconButton>
           </Box>
@@ -422,7 +460,17 @@ export default function Dashboard() {
         {drawer}
       </Drawer>
 
-      <Main open={open}>
+      <Main
+        open={open}
+        sx={{
+          "& .MuiInputBase-input": {
+            fontSize: { xs: "16px", sm: "0.95rem" },
+          },
+          "& textarea.MuiInputBase-input": {
+            fontSize: { xs: "16px", sm: "0.95rem" },
+          },
+        }}
+      >
         <Toolbar /> {/* Spacing for AppBar */}
         <Box
           sx={{
@@ -717,6 +765,15 @@ export default function Dashboard() {
                                 View
                               </Button>
                             )}
+                            <Button
+                              size="small"
+                              color="error"
+                              variant="text"
+                              onClick={() => removeInquiry(inquiry._id)}
+                              disabled={savingLeadId === inquiry._id}
+                            >
+                              Remove
+                            </Button>
                           </Stack>
                           <Typography
                             variant="caption"
@@ -765,7 +822,7 @@ export default function Dashboard() {
                   Add Property
                 </Button>
               </Box>
-              <Grid container spacing={3}>
+              <Grid container spacing={3} alignItems="stretch">
                 {properties.length === 0 ? (
                   <Grid item xs={12}>
                     <Card sx={{ borderRadius: 2, border: "1px solid #e5e7eb" }}>
@@ -778,7 +835,7 @@ export default function Dashboard() {
                   </Grid>
                 ) : (
                   properties.map((property) => (
-                    <Grid item xs={12} sm={6} md={4} lg={3} key={property._id}>
+                    <Grid item xs={12} sm={6} md={4} lg={3} key={property._id} sx={{ display: "flex" }}>
                       <PropertyCard
                         property={property}
                         onEdit={() =>

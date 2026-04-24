@@ -39,7 +39,7 @@ export default function FeaturedProperties() {
     const fetchRecentProperties = async () => {
       try {
         setLoading(true);
-        const response = await apiFetch("/api/property?limit=8&sort=createdAt");
+        const response = await apiFetch("/api/property?limit=3&sort=createdAt");
 
         if (!response.ok) {
           throw new Error("Failed to fetch properties");
@@ -118,8 +118,8 @@ export default function FeaturedProperties() {
             />
           </Box>
           <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Grid item xs={12} sm={6} md={3} key={index}>
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Grid item xs={12} sm={6} md={4} key={index}>
                 <Paper
                   elevation={0}
                   sx={{
@@ -231,13 +231,12 @@ export default function FeaturedProperties() {
             justifyContent="center"
             alignItems="stretch"
           >
-            {properties.slice(0, 8).map((property, index) => (
+            {properties.slice(0, 3).map((property, index) => (
               <Grid
                 item
                 xs={12}
                 sm={6}
                 md={4}
-                lg={3}
                 key={property._id}
                 sx={{
                   display: "flex",

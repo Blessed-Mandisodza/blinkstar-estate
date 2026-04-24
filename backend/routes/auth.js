@@ -64,6 +64,7 @@ router.post("/register", validateRegistration, async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        avatarUrl: user.avatarUrl || "",
       },
     });
   } catch (error) {
@@ -111,6 +112,7 @@ router.post("/login", validateLogin, async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        avatarUrl: user.avatarUrl || "",
       },
     });
   } catch (error) {
