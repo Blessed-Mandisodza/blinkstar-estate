@@ -52,6 +52,7 @@ const PropertyCard = ({ property, isFavorite, onFavoriteToggle }) => {
         boxShadow: "0 10px 28px rgba(15, 23, 42, 0.12)",
         position: "relative",
         overflow: "hidden",
+        width: "100%",
         height: "100%",
         minHeight: 370,
         display: "flex",

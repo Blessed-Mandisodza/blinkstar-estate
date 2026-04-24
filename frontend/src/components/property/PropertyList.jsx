@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button, Grid, Box, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Button, Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { useAuth } from "../../context/AuthContext";
 import PropertyCard from "./PropertyCard";
 import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied";
@@ -50,7 +50,7 @@ const buildPropertyQuery = (filters, extra = {}) => {
   return params.toString();
 };
 
-const PropertyList = ({ filters = {} }) => {
+const PropertyList = ({ filters = {}, desktopColumns = 4 }) => {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -183,12 +183,27 @@ const PropertyList = ({ filters = {} }) => {
 
   return (
     <>
-      <Grid container spacing={{ xs: 2.5, md: 4 }}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, minmax(0, 1fr))",
+            md: `repeat(${desktopColumns}, minmax(0, 1fr))`,
+          },
+          gap: { xs: 2.5, md: 4 },
+        }}
+      >
         {properties.map((property) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={property._id}>
+          <Box key={property._id} sx={{ minWidth: 0 }}>
             <Link
               to={`/property/${property._id}`}
-              style={{ textDecoration: "none" }}
+              style={{
+                textDecoration: "none",
+                display: "block",
+                width: "100%",
+                height: "100%",
+              }}
             >
               <PropertyCard
                 property={property}
@@ -196,9 +211,9 @@ const PropertyList = ({ filters = {} }) => {
                 onFavoriteToggle={() => toggleFavorite(property._id)}
               />
             </Link>
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
       {page < totalPages && (
         <Box display="flex" justifyContent="center" mt={4}>
           <Button

@@ -432,7 +432,7 @@ const Properties = () => {
             </Grid>
           </Paper>
           <Box mt={4}>
-            <PropertyList filters={filters} />
+            <PropertyList filters={filters} desktopColumns={3} />
           </Box>
         </Box>
       </Box>
