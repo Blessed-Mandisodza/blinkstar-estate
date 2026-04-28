@@ -10,6 +10,7 @@ import NotificationsPage from "./components/dashboard/NotificationsPage";
 import Profile from "./components/dashboard/Profile";
 import Settings from "./components/dashboard/Settings";
 import PrivateRoute from "./components/auth/PrivateRoute";
+import GoogleAuthCallback from "./components/auth/GoogleAuthCallback";
 import { AuthProvider } from "./context/AuthContext";
 import Properties from "./components/ui/Properties";
 import PropertyDetail from "./components/property/PropertyDetail";
@@ -119,6 +120,7 @@ function App() {
             />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Box>

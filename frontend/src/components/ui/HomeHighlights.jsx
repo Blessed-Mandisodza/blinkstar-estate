@@ -7,6 +7,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { keyframes } from "@mui/system";
 import { Link } from "react-router-dom";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
@@ -72,78 +73,142 @@ const sectionTitleSx = {
   lineHeight: 1.15,
 };
 
+const trustMarquee = keyframes`
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-50% - (var(--trust-gap) / 2)));
+  }
+`;
+
 export default function HomeHighlights() {
+  const renderTrustCard = (item, index) => (
+    <Box
+      key={`${item.title}-${index}`}
+      sx={{
+        flex: {
+          xs: "0 0 min(82vw, 290px)",
+          sm: "0 0 280px",
+          md: "0 0 300px",
+        },
+        display: "flex",
+        alignItems: "center",
+        gap: 1.25,
+        minWidth: 0,
+        px: { xs: 1.25, sm: 1.5 },
+        py: { xs: 1.25, sm: 1.5 },
+        borderRadius: 1.5,
+        bgcolor: "common.white",
+        boxShadow: "0 8px 18px rgba(15, 23, 42, 0.05)",
+      }}
+    >
+      <Box
+        sx={{
+          width: 34,
+          height: 34,
+          borderRadius: 1.5,
+          bgcolor: "primary.main",
+          color: "common.white",
+          display: "grid",
+          placeItems: "center",
+          flexShrink: 0,
+          "& svg": { fontSize: 19 },
+        }}
+      >
+        {item.icon}
+      </Box>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          fontWeight={900}
+          sx={{ fontSize: { xs: "0.95rem", md: "1rem" } }}
+          noWrap
+        >
+          {item.title}
+        </Typography>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{
+            display: { xs: "none", md: "block" },
+            lineHeight: 1.35,
+          }}
+        >
+          {item.text}
+        </Typography>
+      </Box>
+    </Box>
+  );
+
   return (
     <>
       <Box sx={{ bgcolor: "#ffffff", py: { xs: 2.5, md: 3 } }}>
         <Container maxWidth="lg">
           <Reveal>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(3, minmax(0, 1fr))",
-              },
-              gap: { xs: 1, sm: 1.25 },
-              p: { xs: 1, sm: 1.25 },
-              borderRadius: 2,
-              border: "1px solid #e5e7eb",
-              bgcolor: "#f8fafc",
-            }}
-          >
-            {trustItems.map((item) => (
+            <Box
+              sx={{
+                "--trust-gap": { xs: "10px", sm: "12px" },
+                position: "relative",
+                overflow: "hidden",
+                p: { xs: 1, sm: 1.25 },
+                borderRadius: 2,
+                border: "1px solid #e5e7eb",
+                bgcolor: "#f8fafc",
+                "&::before, &::after": {
+                  content: '""',
+                  position: "absolute",
+                  top: 0,
+                  bottom: 0,
+                  width: { xs: 20, sm: 32 },
+                  zIndex: 1,
+                  pointerEvents: "none",
+                },
+                "&::before": {
+                  left: 0,
+                  background:
+                    "linear-gradient(90deg, #f8fafc 25%, rgba(248, 250, 252, 0))",
+                },
+                "&::after": {
+                  right: 0,
+                  background:
+                    "linear-gradient(270deg, #f8fafc 25%, rgba(248, 250, 252, 0))",
+                },
+              }}
+            >
               <Box
-                key={item.title}
                 sx={{
                   display: "flex",
-                  alignItems: "center",
-                  gap: 1.25,
-                  minWidth: 0,
-                  px: { xs: 1.25, sm: 1.5 },
-                  py: { xs: 1.25, sm: 1.5 },
-                  borderRadius: 1.5,
-                  bgcolor: "common.white",
-                  boxShadow: "0 8px 18px rgba(15, 23, 42, 0.05)",
+                  width: "max-content",
+                  gap: "var(--trust-gap)",
+                  animation: `${trustMarquee} 18s linear infinite`,
+                  willChange: "transform",
+                  "@media (prefers-reduced-motion: reduce)": {
+                    animation: "none",
+                    transform: "translateX(0)",
+                  },
                 }}
               >
                 <Box
                   sx={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 1.5,
-                    bgcolor: "primary.main",
-                    color: "common.white",
-                    display: "grid",
-                    placeItems: "center",
-                    flexShrink: 0,
-                    "& svg": { fontSize: 19 },
+                    display: "flex",
+                    gap: "var(--trust-gap)",
                   }}
                 >
-                  {item.icon}
+                  {trustItems.map((item, index) => renderTrustCard(item, index))}
                 </Box>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    fontWeight={900}
-                    sx={{ fontSize: { xs: "0.95rem", md: "1rem" } }}
-                    noWrap
-                  >
-                    {item.title}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{
-                      display: { xs: "none", md: "block" },
-                      lineHeight: 1.35,
-                    }}
-                  >
-                    {item.text}
-                  </Typography>
+                <Box
+                  aria-hidden="true"
+                  sx={{
+                    display: "flex",
+                    gap: "var(--trust-gap)",
+                  }}
+                >
+                  {trustItems.map((item, index) =>
+                    renderTrustCard(item, trustItems.length + index)
+                  )}
                 </Box>
               </Box>
-              ))}
-          </Box>
+            </Box>
           </Reveal>
         </Container>
       </Box>

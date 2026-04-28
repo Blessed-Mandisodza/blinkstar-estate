@@ -18,7 +18,7 @@ import Alert from "@mui/material/Alert";
 import { styled } from "@mui/material/styles";
 import ForgotPassword from "./ForgotPassword";
 import { GoogleIcon, FacebookIcon } from "./CustomIcons";
-import { authFetch, buildApiUrl } from "../../utils/authFetch";
+import { authFetch, buildApiRedirectUrl } from "../../utils/authFetch";
 import { useAuth } from "../../context/AuthContext";
 
 // Styled Card component for sign-in form
@@ -213,11 +213,15 @@ export default function SignIn() {
   };
 
   const handleGoogleSignIn = async () => {
-    window.location.href = buildApiUrl("/api/auth/google");
+    window.location.href = buildApiRedirectUrl("/api/auth/google?next=/");
   };
 
   const handleFacebookSignIn = async () => {
-    window.location.href = buildApiUrl("/api/auth/facebook");
+    setAlert({
+      open: true,
+      message: "Facebook sign-in is not live yet. Use Google or email for now.",
+      severity: "info",
+    });
   };
 
   return (
@@ -326,7 +330,7 @@ export default function SignIn() {
               disabled={loading}
               size="medium"
             >
-              Sign in with Google
+              Continue with Google
             </Button>
             <Button
               fullWidth

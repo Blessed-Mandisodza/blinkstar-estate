@@ -32,6 +32,9 @@ Environment variables:
 - `CORS_ORIGINS=https://your-frontend-domain.vercel.app`
 - `EMAIL_USER`
 - `EMAIL_PASS`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URI=https://your-backend-domain.vercel.app/api/auth/google/callback`
 - `IMAGEKIT_PRIVATE_KEY`
 - `IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_imagekit_id`
 - `IMAGEKIT_UPLOAD_FOLDER=/property-images`
@@ -58,3 +61,15 @@ folder you want new uploads to land in with `IMAGEKIT_UPLOAD_FOLDER`.
 If ImageKit is not configured, image uploads fall back to inline data URLs so local
 development still works. Do not rely on that fallback for production, because it
 can make MongoDB records very large.
+
+## 5. Google Sign-In Setup
+
+To make `Continue with Google` work:
+
+- Create a Google OAuth 2.0 Web application in Google Cloud Console.
+- Add your frontend origin to **Authorized JavaScript origins**.
+- Add your backend callback URL to **Authorized redirect URIs**:
+  - `https://your-backend-domain.vercel.app/api/auth/google/callback`
+  - `http://localhost:5000/api/auth/google/callback` for local testing
+- Copy the client ID and client secret into the backend Vercel env vars.
+- Redeploy the backend after saving them.

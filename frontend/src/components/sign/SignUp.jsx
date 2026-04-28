@@ -17,7 +17,7 @@ import Container from "@mui/material/Container";
 import { styled } from "@mui/material/styles";
 import { GoogleIcon, FacebookIcon } from "./CustomIcons";
 import { useAuth } from "../../context/AuthContext";
-import { apiFetch, buildApiUrl } from "../../utils/authFetch";
+import { apiFetch, buildApiRedirectUrl } from "../../utils/authFetch";
 
 // Styled Card component for sign-up form
 const Card = styled(MuiCard)(({ theme }) => ({
@@ -220,11 +220,15 @@ export default function SignUp() {
   };
 
   const handleGoogleSignUp = async () => {
-    window.location.href = buildApiUrl("/api/auth/google");
+    window.location.href = buildApiRedirectUrl("/api/auth/google?next=/");
   };
 
   const handleFacebookSignUp = async () => {
-    window.location.href = buildApiUrl("/api/auth/facebook");
+    setAlert({
+      open: true,
+      message: "Facebook sign-in is not live yet. Use Google or email for now.",
+      severity: "info",
+    });
   };
 
   return (
@@ -333,7 +337,7 @@ export default function SignUp() {
               disabled={loading}
               size="medium"
             >
-              Sign up with Google
+              Continue with Google
             </Button>
             <Button
               fullWidth

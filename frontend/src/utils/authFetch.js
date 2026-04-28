@@ -1,4 +1,9 @@
 const API_BASE = (process.env.REACT_APP_API_URL || "").replace(/\/$/, "");
+const LOCAL_API_FALLBACK =
+  typeof window !== "undefined" &&
+  /^https?:\/\/(localhost|127\.0\.0\.1):3000$/.test(window.location.origin)
+    ? window.location.origin.replace(/:3000$/, ":5000")
+    : "";
 
 async function ensureApiDidNotReturnHtml(response, path) {
   const contentType = response.headers.get("content-type") || "";
@@ -24,6 +29,20 @@ export function buildApiUrl(path = "") {
 
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return API_BASE ? `${API_BASE}${normalizedPath}` : normalizedPath;
+}
+
+export function buildApiRedirectUrl(path = "") {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  if (API_BASE) {
+    return `${API_BASE}${normalizedPath}`;
+  }
+
+  if (LOCAL_API_FALLBACK) {
+    return `${LOCAL_API_FALLBACK}${normalizedPath}`;
+  }
+
+  return normalizedPath;
 }
 
 export function resolveMediaUrl(path) {
