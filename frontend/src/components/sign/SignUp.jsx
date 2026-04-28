@@ -15,7 +15,7 @@ import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import Container from "@mui/material/Container";
 import { styled } from "@mui/material/styles";
-import { GoogleIcon, FacebookIcon } from "./CustomIcons";
+import { GoogleIcon } from "./CustomIcons";
 import { useAuth } from "../../context/AuthContext";
 import { apiFetch, buildApiRedirectUrl } from "../../utils/authFetch";
 
@@ -223,14 +223,6 @@ export default function SignUp() {
     window.location.href = buildApiRedirectUrl("/api/auth/google?next=/");
   };
 
-  const handleFacebookSignUp = async () => {
-    setAlert({
-      open: true,
-      message: "Facebook sign-in is not live yet. Use Google or email for now.",
-      severity: "info",
-    });
-  };
-
   return (
     <Box
       sx={{
@@ -338,16 +330,6 @@ export default function SignUp() {
               size="medium"
             >
               Continue with Google
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={handleFacebookSignUp}
-              startIcon={<FacebookIcon />}
-              disabled={loading}
-              size="medium"
-            >
-              Sign up with Facebook
             </Button>
             <Typography
               variant="body2"
