@@ -86,6 +86,9 @@ export default function MessagesPage() {
     () => messages.find((message) => message._id === selectedId) || messages[0] || null,
     [messages, selectedId]
   );
+  const missingWhatsAppPhone =
+    selectedMessage?.source === "whatsapp" &&
+    !normalizeWhatsAppPhone(selectedMessage?.phone);
 
   const thread = useMemo(() => buildThread(selectedMessage), [selectedMessage]);
 
@@ -331,6 +334,14 @@ export default function MessagesPage() {
 
       <Divider sx={{ my: 2 }} />
 
+      {missingWhatsAppPhone && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          This older WhatsApp lead was saved without a phone number, so it
+          cannot be replied to directly from the inbox. New WhatsApp leads will
+          ask for the client's phone number before the chat opens.
+        </Alert>
+      )}
+
       <Stack spacing={1.5} sx={{ mb: 2.5 }}>
         {thread.map((item) => {
           const isStaff = item.senderRole !== "client";
@@ -399,7 +410,11 @@ export default function MessagesPage() {
                       )
                     }
                     onClick={sendReply}
-                    disabled={!replyText.trim() || savingId === selectedMessage._id}
+                    disabled={
+                      !replyText.trim() ||
+                      savingId === selectedMessage._id ||
+                      missingWhatsAppPhone
+                    }
                   >
                     {selectedMessage.source === "whatsapp"
                       ? "Send on WhatsApp"

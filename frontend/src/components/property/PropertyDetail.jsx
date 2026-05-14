@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -9,11 +10,13 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  DialogTitle,
   Divider,
   Grid,
   IconButton,
   Paper,
   Stack,
+  TextField,
   Tooltip,
   Typography,
   useMediaQuery,
@@ -161,6 +164,14 @@ const PropertyDetail = () => {
   const [contactIntent, setContactIntent] = useState("general");
   const [shareMessage, setShareMessage] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
+  const [leadDialogOpen, setLeadDialogOpen] = useState(false);
+  const [leadForm, setLeadForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+  const [leadError, setLeadError] = useState("");
+  const [leadSaving, setLeadSaving] = useState(false);
   const contactSectionRef = useRef(null);
   const agentCardRef = useRef(null);
   const [agentCardHeight, setAgentCardHeight] = useState(null);
@@ -179,6 +190,11 @@ const PropertyDetail = () => {
     property?.contactName || property?.listedBy?.name || "BlinkStar Agent";
   const propertyUrl =
     typeof window !== "undefined" ? window.location.href : "";
+  const buildLeadDefaults = () => ({
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || user?.whatsapp || "",
+  });
 
   useEffect(() => {
     let isActive = true;
@@ -332,6 +348,68 @@ const PropertyDetail = () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ source, pageUrl: propertyUrl }),
     }).catch(() => {});
+  };
+
+  const openLeadDialog = () => {
+    setLeadForm(buildLeadDefaults());
+    setLeadError("");
+    setLeadDialogOpen(true);
+  };
+
+  const closeLeadDialog = () => {
+    if (leadSaving) return;
+    setLeadDialogOpen(false);
+    setLeadError("");
+  };
+
+  const handleLeadChange = (event) => {
+    const { name, value } = event.target;
+    setLeadForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleWhatsAppLeadSubmit = async () => {
+    if (!property?._id) return;
+
+    const phone = String(leadForm.phone || "").trim();
+
+    if (!phone) {
+      setLeadError("Please enter the client's phone number before continuing.");
+      return;
+    }
+
+    setLeadSaving(true);
+    setLeadError("");
+
+    try {
+      const res = await apiFetch(`/api/property/${property._id}/contact-click`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "whatsapp",
+          pageUrl: propertyUrl,
+          name: leadForm.name,
+          email: leadForm.email,
+          phone,
+          message: whatsappMessage,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || "Could not save the WhatsApp lead.");
+      }
+
+      setLeadDialogOpen(false);
+      setLeadForm(buildLeadDefaults());
+
+      if (typeof window !== "undefined") {
+        window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+      }
+    } catch (error) {
+      setLeadError(error.message || "Could not save the WhatsApp lead.");
+    } finally {
+      setLeadSaving(false);
+    }
   };
 
   const handleShare = async () => {
@@ -668,6 +746,64 @@ const PropertyDetail = () => {
         </Paper>
 
         <Dialog
+          open={leadDialogOpen}
+          onClose={closeLeadDialog}
+          fullWidth
+          maxWidth="xs"
+        >
+          <DialogTitle>Continue to WhatsApp</DialogTitle>
+          <DialogContent dividers>
+            <Stack spacing={2}>
+              <Typography color="text.secondary">
+                Save the visitor's phone number first so this WhatsApp lead can
+                be replied to from the inbox later.
+              </Typography>
+
+              {leadError && <Alert severity="error">{leadError}</Alert>}
+
+              <TextField
+                label="Client name"
+                name="name"
+                value={leadForm.name}
+                onChange={handleLeadChange}
+                fullWidth
+              />
+              <TextField
+                label="Client phone number"
+                name="phone"
+                value={leadForm.phone}
+                onChange={handleLeadChange}
+                fullWidth
+                required
+              />
+              <TextField
+                label="Client email"
+                name="email"
+                value={leadForm.email}
+                onChange={handleLeadChange}
+                fullWidth
+                type="email"
+                helperText="Optional"
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={closeLeadDialog} disabled={leadSaving}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleWhatsAppLeadSubmit}
+              variant="contained"
+              color="success"
+              disabled={leadSaving}
+              startIcon={<WhatsApp />}
+            >
+              {leadSaving ? "Saving..." : "Save and Open WhatsApp"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog
           open={openModal}
           onClose={() => setOpenModal(false)}
           maxWidth="lg"
@@ -809,11 +945,8 @@ const PropertyDetail = () => {
                 <Button
                   variant="contained"
                   color="success"
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   startIcon={<WhatsApp />}
-                  onClick={() => trackContactAction("whatsapp")}
+                  onClick={openLeadDialog}
                   fullWidth
                 >
                   WhatsApp

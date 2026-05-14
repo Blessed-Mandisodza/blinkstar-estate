@@ -3,3 +3,7 @@ frontend/.env
 .env
 .env.local
 .env.*.local
+mobile/.env
+mobile/.expo
+mobile/dist
+mobile/node_modules

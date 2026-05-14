@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "BlinkStar Mobile",
+    "slug": "blinkstar-mobile",
+    "scheme": "blinkstar",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "android": {
+      "package": "com.blinkstar.mobile"
+    },
+    "ios": {
+      "bundleIdentifier": "com.blinkstar.mobile"
+    }
+  }
+}

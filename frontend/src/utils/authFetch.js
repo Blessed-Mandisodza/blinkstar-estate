@@ -5,6 +5,14 @@ const LOCAL_API_FALLBACK =
     ? window.location.origin.replace(/:3000$/, ":5000")
     : "";
 
+function isDirectUrl(path = "") {
+  return (
+    path.startsWith("http") ||
+    path.startsWith("data:") ||
+    path.startsWith("blob:")
+  );
+}
+
 async function ensureApiDidNotReturnHtml(response, path) {
   const contentType = response.headers.get("content-type") || "";
 
@@ -23,7 +31,7 @@ export function buildApiUrl(path = "") {
     return API_BASE;
   }
 
-  if (path.startsWith("http")) {
+  if (isDirectUrl(path)) {
     return path;
   }
 
@@ -50,11 +58,7 @@ export function resolveMediaUrl(path) {
     return "";
   }
 
-  if (path.startsWith("http")) {
-    return path;
-  }
-
-  if (path.startsWith("data:") || path.startsWith("blob:")) {
+  if (isDirectUrl(path)) {
     return path;
   }
 

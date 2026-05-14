@@ -548,11 +548,26 @@ router.delete("/inquiries/:id", auth, async (req, res) => {
 // Track contact action clicks such as WhatsApp, call, and email
 router.post("/:id/contact-click", async (req, res) => {
   try {
-    const { source = "whatsapp", pageUrl } = req.body;
+    const {
+      source = "whatsapp",
+      pageUrl,
+      name,
+      email,
+      phone,
+      message,
+    } = req.body;
     const allowedSources = ["whatsapp", "phone", "email"];
 
     if (!allowedSources.includes(source)) {
       return res.status(400).json({ error: "Invalid contact source" });
+    }
+
+    const trimmedPhone = String(phone || "").trim();
+
+    if (source === "whatsapp" && !trimmedPhone) {
+      return res.status(400).json({
+        error: "Phone number is required to save a WhatsApp lead.",
+      });
     }
 
     const property = await Property.findById(req.params.id).populate(
@@ -567,10 +582,14 @@ router.post("/:id/contact-click", async (req, res) => {
     const inquiry = await Inquiry.create({
       property: property._id,
       propertyOwner: ownerId,
-      name: "Website Visitor",
+      name: String(name || "").trim() || "Website Visitor",
+      email: String(email || "").trim().toLowerCase() || undefined,
+      phone: trimmedPhone || undefined,
       inquiryType: source,
       source,
-      message: `Visitor clicked ${source} on ${property.title}.`,
+      message:
+        String(message || "").trim() ||
+        `Visitor clicked ${source} on ${property.title}.`,
       pageUrl,
       userAgent: req.get("user-agent"),
     });
