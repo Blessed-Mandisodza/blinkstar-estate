@@ -82,7 +82,7 @@ const trustMarquee = keyframes`
   }
 `;
 
-export default function HomeHighlights() {
+export default function HomeHighlights({ afterTrustContent = null }) {
   const renderTrustCard = (item, index) => (
     <Box
       key={`${item.title}-${index}`}
@@ -212,6 +212,8 @@ export default function HomeHighlights() {
           </Reveal>
         </Container>
       </Box>
+
+      {afterTrustContent}
 
       <Box sx={{ bgcolor: "#f6f8fb", py: { xs: 4.5, md: 6 } }}>
         <Container maxWidth="lg">

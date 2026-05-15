@@ -50,7 +50,11 @@ const buildPropertyQuery = (filters, extra = {}) => {
   return params.toString();
 };
 
-const PropertyList = ({ filters = {}, desktopColumns = 4 }) => {
+const PropertyList = ({
+  filters = {},
+  desktopColumns = 4,
+  pageSizeOverride,
+}) => {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -61,7 +65,7 @@ const PropertyList = ({ filters = {}, desktopColumns = 4 }) => {
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const pageSize = isMobile ? 8 : 16;
+  const pageSize = pageSizeOverride || (isMobile ? 8 : 16);
 
   useEffect(() => {
     setPage(1);

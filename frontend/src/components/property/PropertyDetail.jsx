@@ -49,7 +49,12 @@ import Loader from "../ui/Loader";
 import SeoHead from "../ui/SeoHead";
 import PropertyCard from "./PropertyCard";
 import ContactForm from "./ContactForm";
-import { apiFetch, authFetch, resolveMediaUrl } from "../../utils/authFetch";
+import {
+  apiFetch,
+  authFetch,
+  buildApiUrl,
+  resolveMediaUrl,
+} from "../../utils/authFetch";
 
 const FALLBACK_CONTACT = {
   email: "blinkstardesigns@gmail.com",
@@ -106,6 +111,19 @@ const normalizeWhatsAppPhone = (phone) => {
   if (!digits) return FALLBACK_CONTACT.whatsapp;
   if (digits.startsWith("0")) return `263${digits.slice(1)}`;
   return digits;
+};
+
+const queueContactClick = (propertyId, payload) => {
+  if (!propertyId) return;
+
+  const requestUrl = buildApiUrl(`/api/property/${propertyId}/contact-click`);
+
+  fetch(requestUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    keepalive: true,
+  }).catch(() => {});
 };
 
 const GalleryTile = ({ image, alt, onOpen, sx, children }) => (
@@ -367,7 +385,7 @@ const PropertyDetail = () => {
     setLeadForm((current) => ({ ...current, [name]: value }));
   };
 
-  const handleWhatsAppLeadSubmit = async () => {
+  const handleWhatsAppLeadSubmit = () => {
     if (!property?._id) return;
 
     const phone = String(leadForm.phone || "").trim();
@@ -380,35 +398,29 @@ const PropertyDetail = () => {
     setLeadSaving(true);
     setLeadError("");
 
-    try {
-      const res = await apiFetch(`/api/property/${property._id}/contact-click`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source: "whatsapp",
-          pageUrl: propertyUrl,
-          name: leadForm.name,
-          email: leadForm.email,
-          phone,
-          message: whatsappMessage,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
+    queueContactClick(property._id, {
+      source: "whatsapp",
+      pageUrl: propertyUrl,
+      name: leadForm.name,
+      email: leadForm.email,
+      phone,
+      message: whatsappMessage,
+    });
 
-      if (!res.ok) {
-        throw new Error(data.error || "Could not save the WhatsApp lead.");
+    setLeadDialogOpen(false);
+    setLeadForm(buildLeadDefaults());
+    setLeadSaving(false);
+
+    if (typeof window !== "undefined") {
+      const whatsappWindow = window.open(
+        whatsappUrl,
+        "_blank",
+        "noopener,noreferrer"
+      );
+
+      if (!whatsappWindow) {
+        window.location.href = whatsappUrl;
       }
-
-      setLeadDialogOpen(false);
-      setLeadForm(buildLeadDefaults());
-
-      if (typeof window !== "undefined") {
-        window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-      }
-    } catch (error) {
-      setLeadError(error.message || "Could not save the WhatsApp lead.");
-    } finally {
-      setLeadSaving(false);
     }
   };
 
@@ -754,11 +766,6 @@ const PropertyDetail = () => {
           <DialogTitle>Continue to WhatsApp</DialogTitle>
           <DialogContent dividers>
             <Stack spacing={2}>
-              <Typography color="text.secondary">
-                Save the visitor's phone number first so this WhatsApp lead can
-                be replied to from the inbox later.
-              </Typography>
-
               {leadError && <Alert severity="error">{leadError}</Alert>}
 
               <TextField
