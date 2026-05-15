@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { Box } from "@mui/material";
-import PropertyCard from "./components/property/PropertyCard";
 import Home from "./components/ui/Home";
 import SignIn from "./components/sign/SignIn";
 import SignUp from "./components/sign/SignUp";
@@ -15,6 +14,7 @@ import { AuthProvider } from "./context/AuthContext";
 import Properties from "./components/ui/Properties";
 import PropertyDetail from "./components/property/PropertyDetail";
 import PropertyForm from "./components/property/PropertyForm";
+import CompareProperties from "./components/property/CompareProperties";
 import SavedProperties from "./components/property/SavedProperties";
 import SavedSearches from "./components/property/SavedSearches";
 import PropertyMap from "./components/property/PropertyMap";
@@ -62,8 +62,8 @@ function App() {
                 </PrivateRoute>
               }
             />
-            <Route path="/property" element={<PropertyCard />} />
             <Route path="/properties" element={<Properties />} />
+            <Route path="/compare" element={<CompareProperties />} />
             <Route path="/properties/:type/:location" element={<SeoListings />} />
             <Route path="/map" element={<PropertyMap />} />
             <Route path="/mortgage" element={<MortgageCalculator />} />

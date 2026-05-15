@@ -6,6 +6,7 @@ import PropertyList from "../property/PropertyList";
 import {
   Button,
   Box,
+  Chip,
   TextField,
   MenuItem,
   Grid,
@@ -16,10 +17,18 @@ import {
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import AddHomeWorkIcon from "@mui/icons-material/AddHomeWork";
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import BookmarkAddIcon from "@mui/icons-material/BookmarkAdd";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import SearchIcon from "@mui/icons-material/Search";
 import { authFetch } from "../../utils/authFetch";
+import {
+  clearComparedProperties,
+  comparePropertiesUpdatedEventName,
+  MAX_COMPARED_PROPERTIES,
+  readComparedProperties,
+  toggleComparedProperty,
+} from "../../utils/compareProperties";
 
 const propertyTypes = [
   "",
@@ -88,6 +97,25 @@ const buildSearchFromFilters = (filters) => {
   return params.toString();
 };
 
+const categoryLabelMap = {
+  House: "Houses",
+  Apartment: "Apartments",
+  "For Sale": "For Sale",
+  "For Rent": "For Rent",
+};
+
+const getActiveBrowseLabel = (filters) => {
+  if (filters.status && ["For Sale", "For Rent"].includes(filters.status)) {
+    return categoryLabelMap[filters.status] || filters.status;
+  }
+
+  if (filters.type && ["House", "Apartment"].includes(filters.type)) {
+    return categoryLabelMap[filters.type] || filters.type;
+  }
+
+  return "";
+};
+
 const Properties = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -96,10 +124,31 @@ const Properties = () => {
     readFiltersFromSearch(location.search)
   );
   const [saveMessage, setSaveMessage] = useState("");
+  const [comparedProperties, setComparedProperties] = useState(() =>
+    readComparedProperties()
+  );
+  const activeBrowseLabel = getActiveBrowseLabel(filters);
 
   useEffect(() => {
     setFilters(readFiltersFromSearch(location.search));
   }, [location.search]);
+
+  useEffect(() => {
+    const syncComparedProperties = () => {
+      setComparedProperties(readComparedProperties());
+    };
+
+    window.addEventListener(comparePropertiesUpdatedEventName, syncComparedProperties);
+    window.addEventListener("storage", syncComparedProperties);
+
+    return () => {
+      window.removeEventListener(
+        comparePropertiesUpdatedEventName,
+        syncComparedProperties
+      );
+      window.removeEventListener("storage", syncComparedProperties);
+    };
+  }, []);
 
   const updateFilters = (nextFilters) => {
     setFilters(nextFilters);
@@ -149,6 +198,16 @@ const Properties = () => {
     }
   };
 
+  const handleCompareToggle = (property) => {
+    toggleComparedProperty(property);
+    setComparedProperties(readComparedProperties());
+  };
+
+  const handleClearCompared = () => {
+    clearComparedProperties();
+    setComparedProperties([]);
+  };
+
   return (
     <Box sx={{ background: "#f7f9fb", minHeight: "100vh" }}>
       <SeoHead
@@ -187,6 +246,15 @@ const Properties = () => {
               </Button>
             )}
           </Box>
+          {activeBrowseLabel && (
+            <Box sx={{ mb: 2.5 }}>
+              <Chip
+                color="primary"
+                label={`Showing: ${activeBrowseLabel}`}
+                sx={{ fontWeight: 800, px: 0.75 }}
+              />
+            </Box>
+          )}
           {saveMessage && (
             <Alert severity={saveMessage.includes("saved") ? "success" : "error"} sx={{ mb: 2 }}>
               {saveMessage}
@@ -431,8 +499,104 @@ const Properties = () => {
               )}
             </Grid>
           </Paper>
+          <Paper
+            elevation={0}
+            sx={{
+              p: { xs: 2, sm: 2.5 },
+              mb: 3,
+              borderRadius: 2,
+              border: "1px solid #dbe7f3",
+              background:
+                "linear-gradient(135deg, rgba(239,246,255,0.92), rgba(248,250,252,0.98))",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: { xs: "flex-start", md: "center" },
+                flexDirection: { xs: "column", md: "row" },
+                gap: 2,
+              }}
+            >
+              <Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    mb: 0.5,
+                  }}
+                >
+                  <CompareArrowsIcon color="primary" />
+                  <Typography variant="h6" fontWeight={800}>
+                    Compare Properties
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Select up to {MAX_COMPARED_PROPERTIES} listings from the cards
+                  below to review them side by side.
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 1,
+                  flexWrap: "wrap",
+                  width: { xs: "100%", md: "auto" },
+                }}
+              >
+                <Chip
+                  color={comparedProperties.length >= 2 ? "primary" : "default"}
+                  label={`${comparedProperties.length}/${MAX_COMPARED_PROPERTIES} selected`}
+                  sx={{ fontWeight: 700 }}
+                />
+                <Button
+                  variant="contained"
+                  startIcon={<CompareArrowsIcon />}
+                  disabled={comparedProperties.length < 2}
+                  onClick={() => navigate("/compare")}
+                >
+                  Compare Now
+                </Button>
+                <Button
+                  variant="text"
+                  color="inherit"
+                  disabled={!comparedProperties.length}
+                  onClick={handleClearCompared}
+                >
+                  Clear
+                </Button>
+              </Box>
+            </Box>
+            {comparedProperties.length > 0 && (
+              <Box
+                sx={{
+                  mt: 2,
+                  display: "flex",
+                  gap: 1,
+                  flexWrap: "wrap",
+                }}
+              >
+                {comparedProperties.map((property) => (
+                  <Chip
+                    key={property._id}
+                    label={property.title || "Selected property"}
+                    onDelete={() => handleCompareToggle(property)}
+                    sx={{ maxWidth: 260 }}
+                  />
+                ))}
+              </Box>
+            )}
+          </Paper>
           <Box mt={4}>
-            <PropertyList filters={filters} desktopColumns={3} />
+            <PropertyList
+              filters={filters}
+              desktopColumns={3}
+              comparedProperties={comparedProperties}
+              onCompareToggle={handleCompareToggle}
+              compareLimit={MAX_COMPARED_PROPERTIES}
+            />
           </Box>
         </Box>
       </Box>

@@ -1,6 +1,18 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 
+const parseCookieHeader = (cookieHeader = "") =>
+  cookieHeader.split(";").reduce((acc, cookiePart) => {
+    const [rawName, ...rawValue] = cookiePart.trim().split("=");
+
+    if (!rawName) {
+      return acc;
+    }
+
+    acc[rawName] = decodeURIComponent(rawValue.join("="));
+    return acc;
+  }, {});
+
 const getJwtSecret = () => {
   const jwtSecret = process.env.JWT_SECRET;
 
@@ -13,12 +25,13 @@ const getJwtSecret = () => {
 
 module.exports = async function (req, res, next) {
   const authHeader = req.headers.authorization;
+  const parsedCookies = parseCookieHeader(req.headers.cookie);
   let token = null;
 
   if (authHeader && authHeader.startsWith("Bearer ")) {
     token = authHeader.split(" ")[1];
-  } else if (req.cookies && req.cookies.token) {
-    token = req.cookies.token;
+  } else if (parsedCookies.token) {
+    token = parsedCookies.token;
   }
 
   if (!token) {

@@ -308,6 +308,7 @@ export default function FeaturedProperties() {
                       property={property}
                       isFavorite={favorites.includes(property._id)}
                       onFavoriteToggle={() => toggleFavorite(property._id)}
+                      showContactInfo={false}
                     />
                   </Box>
                 </Reveal>

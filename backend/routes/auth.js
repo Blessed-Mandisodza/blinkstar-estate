@@ -1,11 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const { body, validationResult } = require("express-validator");
+const { body } = require("express-validator");
 const User = require("../models/User");
 const Property = require("../models/Property");
 const crypto = require("crypto");
 const auth = require("../middleware/auth");
+const validateRequest = require("../middleware/validateRequest");
+const createRateLimiter = require("../middleware/rateLimiter");
 const GOOGLE_STATE_COOKIE = "blinkstar_google_state";
 
 const normalizeUrl = (value) =>
@@ -150,6 +152,26 @@ const validateLogin = [
   body("email").isEmail().normalizeEmail(),
   body("password").notEmpty(),
 ];
+
+const validateForgotPassword = [body("email").isEmail().normalizeEmail()];
+
+const validatePasswordReset = [
+  body("password").isLength({ min: 6 }),
+];
+
+const authRateLimiter = createRateLimiter({
+  keyPrefix: "auth",
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: "Too many sign-in attempts. Please wait and try again.",
+});
+
+const passwordRateLimiter = createRateLimiter({
+  keyPrefix: "password-reset",
+  windowMs: 15 * 60 * 1000,
+  max: 6,
+  message: "Too many password reset attempts. Please wait and try again.",
+});
 
 router.get("/google", (req, res) => {
   try {
@@ -319,14 +341,13 @@ router.get("/google/callback", async (req, res) => {
   }
 });
 
-router.post("/register", validateRegistration, async (req, res) => {
+router.post(
+  "/register",
+  authRateLimiter,
+  validateRegistration,
+  validateRequest,
+  async (req, res) => {
   try {
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const { email, password, name } = req.body;
     const existingUser = await User.findOne({ email });
 
@@ -361,14 +382,8 @@ router.post("/register", validateRegistration, async (req, res) => {
   }
 });
 
-router.post("/login", validateLogin, async (req, res) => {
+router.post("/login", authRateLimiter, validateLogin, validateRequest, async (req, res) => {
   try {
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const { email, password } = req.body;
     const user = await User.findOne({ email });
 
@@ -394,7 +409,12 @@ router.post("/login", validateLogin, async (req, res) => {
   }
 });
 
-router.post("/forgot-password", async (req, res) => {
+router.post(
+  "/forgot-password",
+  passwordRateLimiter,
+  validateForgotPassword,
+  validateRequest,
+  async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
@@ -415,7 +435,12 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
-router.post("/reset-password/:token", async (req, res) => {
+router.post(
+  "/reset-password/:token",
+  passwordRateLimiter,
+  validatePasswordReset,
+  validateRequest,
+  async (req, res) => {
   try {
     const { password } = req.body;
     const { token } = req.params;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AppBar,
@@ -53,6 +53,7 @@ import Loader from "../ui/Loader";
 import { authFetch } from "../../utils/authFetch";
 import AdminModeration from "./AdminModeration";
 import { getUserAvatarSrc, getUserInitial } from "../../utils/userAvatar";
+import { buildLeadInsights } from "../../utils/dashboardInsights";
 
 // Setup Socket.IO client
 
@@ -144,6 +145,7 @@ const formatInquirySource = (source = "contact_form") =>
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 const leadStatusOptions = ["New", "Contacted", "Closed", "Archived"];
+const recentInquiryLimit = 18;
 
 export default function Dashboard() {
   const [open, setOpen] = useState(false);
@@ -165,6 +167,11 @@ export default function Dashboard() {
     pendingApprovals: 0,
   });
   const [loading, setLoading] = useState(true);
+  const leadInsights = useMemo(
+    () => buildLeadInsights(inquiries, properties),
+    [inquiries, properties]
+  );
+  const visibleInquiries = inquiries.slice(0, 12);
 
   const newLeadCount = inquiries.filter((inquiry) => inquiry.status === "New").length;
 
@@ -185,7 +192,9 @@ export default function Dashboard() {
         const statsData = await statsRes.json();
         setStats(statsData);
         // Fetch recent enquiries
-        const inquiryRes = await authFetch("/api/property/inquiries?limit=12");
+        const inquiryRes = await authFetch(
+          `/api/property/inquiries?limit=${recentInquiryLimit}`
+        );
         if (inquiryRes.ok) {
           const inquiryData = await inquiryRes.json();
           setInquiries(inquiryData.inquiries || []);
@@ -565,6 +574,169 @@ export default function Dashboard() {
                 ))}
               </Grid>
 
+            <Grid container spacing={2.5} sx={{ mb: 4 }}>
+              <Grid item xs={12} lg={7}>
+                <Card
+                  sx={{
+                    height: "100%",
+                    borderRadius: 3,
+                    border: "1px solid #e5e7eb",
+                    boxShadow: "0 12px 28px rgba(15, 23, 42, 0.08)",
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 2.25, md: 2.75 } }}>
+                    <Typography variant="h6" fontWeight={800}>
+                      Recent Lead Mix
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      Based on the latest {inquiries.length} lead
+                      {inquiries.length === 1 ? "" : "s"} in the inbox.
+                    </Typography>
+
+                    <Box sx={{ mt: 2.5 }}>
+                      <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
+                        By source
+                      </Typography>
+                      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
+                        {leadInsights.sourceBreakdown.length > 0 ? (
+                          leadInsights.sourceBreakdown.map((item) => (
+                            <Chip
+                              key={item.key}
+                              label={`${formatInquirySource(item.key)} ${item.count}`}
+                              color={item.key === "whatsapp" ? "success" : "default"}
+                              variant={item.key === "whatsapp" ? "filled" : "outlined"}
+                              sx={{ fontWeight: 700 }}
+                            />
+                          ))
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            No lead source data yet.
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Box>
+
+                    <Box sx={{ mt: 2.5 }}>
+                      <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
+                        By status
+                      </Typography>
+                      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
+                        {leadInsights.statusBreakdown.length > 0 ? (
+                          leadInsights.statusBreakdown.map((item) => (
+                            <Chip
+                              key={item.key}
+                              label={`${item.key} ${item.count}`}
+                              color={item.key === "New" ? "error" : "default"}
+                              variant={item.key === "New" ? "filled" : "outlined"}
+                              sx={{ fontWeight: 700 }}
+                            />
+                          ))
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            Status totals will appear once leads start coming in.
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} lg={5}>
+                <Card
+                  sx={{
+                    height: "100%",
+                    borderRadius: 3,
+                    border: "1px solid #e5e7eb",
+                    boxShadow: "0 12px 28px rgba(15, 23, 42, 0.08)",
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 2.25, md: 2.75 } }}>
+                    <Typography variant="h6" fontWeight={800}>
+                      Follow-up Focus
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      Quick signals to help you decide which leads need attention first.
+                    </Typography>
+
+                    <Box sx={{ mt: 2.5 }}>
+                      <Typography variant="body2" color="text.secondary" fontWeight={700}>
+                        Needs notes or follow-up
+                      </Typography>
+                      <Typography
+                        variant="h3"
+                        sx={{
+                          mt: 0.5,
+                          color: leadInsights.needsAttentionCount ? "#dc2626" : "#0f172a",
+                          fontWeight: 900,
+                        }}
+                      >
+                        {leadInsights.needsAttentionCount}
+                      </Typography>
+                    </Box>
+
+                    <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: "wrap", rowGap: 1 }}>
+                      <Chip
+                        label={`${leadInsights.openLeadCount} open`}
+                        color="primary"
+                        variant="outlined"
+                        sx={{ fontWeight: 700 }}
+                      />
+                      <Chip
+                        label={`${leadInsights.respondedCount} responded`}
+                        color="success"
+                        variant="outlined"
+                        sx={{ fontWeight: 700 }}
+                      />
+                    </Stack>
+
+                    <Box sx={{ mt: 2.5 }}>
+                      <Typography variant="body2" color="text.secondary" fontWeight={700}>
+                        Top recent source
+                      </Typography>
+                      <Typography variant="h6" fontWeight={800} sx={{ mt: 0.5 }}>
+                        {leadInsights.topSource
+                          ? `${formatInquirySource(leadInsights.topSource.key)} (${leadInsights.topSource.count})`
+                          : "No recent leads yet"}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ mt: 2.5 }}>
+                      <Typography variant="body2" color="text.secondary" fontWeight={700}>
+                        Hottest listing
+                      </Typography>
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight={800}
+                        sx={{
+                          mt: 0.5,
+                          display: "-webkit-box",
+                          WebkitBoxOrient: "vertical",
+                          WebkitLineClamp: 2,
+                          overflow: "hidden",
+                        }}
+                      >
+                        {leadInsights.hottestProperty?.title || "No recent property pattern yet"}
+                      </Typography>
+                      {leadInsights.hottestProperty && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          {leadInsights.hottestProperty.count} recent lead
+                          {leadInsights.hottestProperty.count === 1 ? "" : "s"}
+                        </Typography>
+                      )}
+                    </Box>
+
+                    <Button
+                      variant="contained"
+                      sx={{ mt: 3, fontWeight: 700 }}
+                      onClick={() => navigate("/messages")}
+                    >
+                      Open Messages
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+
             {user?.role === "admin" && <AdminModeration />}
 
             {/* Lead Inbox Section */}
@@ -584,7 +756,7 @@ export default function Dashboard() {
                     Lead Inbox
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {inquiries.length} recent lead
+                    {visibleInquiries.length} showing from {inquiries.length} recent lead
                     {inquiries.length === 1 ? "" : "s"}
                   </Typography>
                 </Box>
@@ -594,7 +766,7 @@ export default function Dashboard() {
                   onClick={async () => {
                     try {
                       const inquiryRes = await authFetch(
-                        "/api/property/inquiries?limit=12"
+                        `/api/property/inquiries?limit=${recentInquiryLimit}`
                       );
                       const inquiryData = await inquiryRes.json();
                       setInquiries(inquiryData.inquiries || []);
@@ -630,7 +802,7 @@ export default function Dashboard() {
                     gap: 2,
                   }}
                 >
-                  {inquiries.map((inquiry) => (
+                  {visibleInquiries.map((inquiry) => (
                     <Box key={inquiry._id} sx={{ minWidth: 0 }}>
                       <Card
                         sx={{

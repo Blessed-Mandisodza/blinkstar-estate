@@ -49,12 +49,14 @@ import Loader from "../ui/Loader";
 import SeoHead from "../ui/SeoHead";
 import PropertyCard from "./PropertyCard";
 import ContactForm from "./ContactForm";
+import RecentlyViewedProperties from "./RecentlyViewedProperties";
 import {
   apiFetch,
   authFetch,
   buildApiUrl,
   resolveMediaUrl,
 } from "../../utils/authFetch";
+import { saveRecentlyViewedProperty } from "../../utils/recentlyViewed";
 
 const FALLBACK_CONTACT = {
   email: "blinkstardesigns@gmail.com",
@@ -282,6 +284,11 @@ const PropertyDetail = () => {
       })
       .catch(() => setIsFavorite(false));
   }, [property?._id, user]);
+
+  useEffect(() => {
+    if (!property?._id) return;
+    saveRecentlyViewedProperty(property);
+  }, [property]);
 
   useEffect(() => {
     if (isMobile) {
@@ -1184,6 +1191,7 @@ const PropertyDetail = () => {
           </Box>
         )}
       </Container>
+      <RecentlyViewedProperties excludePropertyId={property?._id} />
     </>
   );
 };

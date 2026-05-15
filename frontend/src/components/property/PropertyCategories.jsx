@@ -100,6 +100,9 @@ const PropertyCategories = () => {
             overflowX: { xs: "auto", md: "visible" },
             pb: { xs: 0.75, md: 0 },
             scrollbarWidth: "thin",
+            scrollSnapType: { xs: "x mandatory", md: "none" },
+            scrollPaddingLeft: { xs: 0, md: 0 },
+            WebkitOverflowScrolling: "touch",
           }}
         >
           {categories.map((category) => (
@@ -116,6 +119,8 @@ const PropertyCategories = () => {
                 display: "flex",
                 alignItems: "flex-end",
                 position: "relative",
+                scrollSnapAlign: { xs: "start", md: "unset" },
+                scrollSnapStop: { xs: "always", md: "normal" },
                 p: { xs: 1.5, md: 1.75 },
                 background: `linear-gradient(180deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.78)), linear-gradient(135deg, ${category.accent}, ${category.accent}cc)`,
                 boxShadow: "0 10px 22px rgba(15, 23, 42, 0.12)",

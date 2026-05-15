@@ -1,10 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button, Box, Typography, useMediaQuery, useTheme } from "@mui/material";
+import {
+  Box,
+  Button,
+  Paper,
+  Skeleton,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import { useAuth } from "../../context/AuthContext";
 import PropertyCard from "./PropertyCard";
 import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied";
-import Loader from "../ui/Loader";
 import { apiFetch, authFetch } from "../../utils/authFetch";
 
 const guestFavoritesKey = "guestFavorites";
@@ -54,6 +61,10 @@ const PropertyList = ({
   filters = {},
   desktopColumns = 4,
   pageSizeOverride,
+  comparedProperties = [],
+  onCompareToggle,
+  compareLimit = 3,
+  showContactInfo = true,
 }) => {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +77,7 @@ const PropertyList = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const pageSize = pageSizeOverride || (isMobile ? 8 : 16);
+  const skeletonCount = Math.min(pageSize, isMobile ? 4 : desktopColumns * 2);
 
   useEffect(() => {
     setPage(1);
@@ -154,8 +166,46 @@ const PropertyList = ({
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" py={8}>
-        <Loader size="large" />
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, minmax(0, 1fr))",
+            md: `repeat(${desktopColumns}, minmax(0, 1fr))`,
+          },
+          gap: { xs: 2.5, md: 4 },
+        }}
+      >
+        {Array.from({ length: skeletonCount }).map((_, index) => (
+          <Paper
+            key={index}
+            elevation={0}
+            sx={{
+              overflow: "hidden",
+              borderRadius: 2,
+              border: "1px solid #e5e7eb",
+              minHeight: 370,
+            }}
+          >
+            <Skeleton variant="rectangular" height={180} animation="wave" />
+            <Box sx={{ p: 2 }}>
+              <Skeleton variant="text" height={34} width="84%" animation="wave" />
+              <Skeleton variant="text" height={22} width="56%" animation="wave" />
+              <Skeleton
+                variant="text"
+                height={34}
+                width="42%"
+                animation="wave"
+                sx={{ mt: 0.75 }}
+              />
+              <Box sx={{ display: "flex", gap: 2, mt: 1.5 }}>
+                <Skeleton variant="text" height={22} width={70} animation="wave" />
+                <Skeleton variant="text" height={22} width={74} animation="wave" />
+              </Box>
+            </Box>
+          </Paper>
+        ))}
       </Box>
     );
   }
@@ -172,6 +222,8 @@ const PropertyList = ({
   }
 
   if (properties.length === 0) {
+    const hasActiveFilters = queryKeys.some((key) => Boolean(filters[key]));
+
     return (
       <Box textAlign="center" py={8} color="text.secondary">
         <SentimentDissatisfiedIcon sx={{ fontSize: 60, mb: 2 }} />
@@ -179,8 +231,26 @@ const PropertyList = ({
           No properties found
         </Typography>
         <Typography variant="body1">
-          Try adjusting your search or filter criteria.
+          {hasActiveFilters
+            ? "Try adjusting your search or filter criteria."
+            : "There are no listings to show right now."}
         </Typography>
+        <Box
+          sx={{
+            mt: 2.5,
+            display: "flex",
+            gap: 1.5,
+            justifyContent: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <Button component={Link} to="/properties" variant="contained">
+            Browse All Properties
+          </Button>
+          <Button component={Link} to="/map" variant="outlined">
+            Open Map Search
+          </Button>
+        </Box>
       </Box>
     );
   }
@@ -213,6 +283,16 @@ const PropertyList = ({
                 property={property}
                 isFavorite={favorites.includes(property._id)}
                 onFavoriteToggle={() => toggleFavorite(property._id)}
+                isCompared={comparedProperties.some((item) => item._id === property._id)}
+                onCompareToggle={
+                  onCompareToggle ? () => onCompareToggle(property) : undefined
+                }
+                compareDisabled={
+                  !comparedProperties.some((item) => item._id === property._id) &&
+                  comparedProperties.length >= compareLimit
+                }
+                showCompareAction={Boolean(onCompareToggle)}
+                showContactInfo={showContactInfo}
               />
             </Link>
           </Box>

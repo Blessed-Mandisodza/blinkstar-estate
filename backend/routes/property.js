@@ -1,14 +1,30 @@
 const express = require("express");
 const router = express.Router();
+const { body, param } = require("express-validator");
 const Property = require("../models/Property");
 const Inquiry = require("../models/Inquiry");
 const SavedSearch = require("../models/SavedSearch");
 const auth = require("../middleware/auth");
+const validateRequest = require("../middleware/validateRequest");
+const createRateLimiter = require("../middleware/rateLimiter");
 const multer = require("multer");
 const nodemailer = require("nodemailer");
 const { uploadImages } = require("../utils/imageUpload");
 
 const REVIEW_STATUSES = ["pending", "approved", "rejected"];
+const PROPERTY_STATUSES = [
+  "Available",
+  "For Sale",
+  "For Rent",
+  "Sold",
+  "Rented",
+  "Pending",
+];
+const FURNISHED_OPTIONS = ["Furnished", "Unfurnished", "Partly Furnished"];
+const INQUIRY_STATUSES = ["New", "Contacted", "Closed", "Archived"];
+const CONTACT_SOURCES = ["whatsapp", "phone", "email"];
+const CONTACT_FORM_SOURCES = ["contact_form", ...CONTACT_SOURCES];
+const CONTACT_INQUIRY_TYPES = ["general", "viewing", "offer"];
 
 const escapeRegex = (value = "") =>
   String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -60,6 +76,117 @@ const getMailTransporter = () => {
 const getPublicReviewFilter = () => ({
   $or: [{ reviewStatus: "approved" }, { reviewStatus: { $exists: false } }],
 });
+
+const contactRateLimiter = createRateLimiter({
+  keyPrefix: "property-contact",
+  windowMs: 10 * 60 * 1000,
+  max: 12,
+  message: "Too many inquiry submissions. Please wait a few minutes and try again.",
+});
+
+const contactClickRateLimiter = createRateLimiter({
+  keyPrefix: "property-contact-click",
+  windowMs: 10 * 60 * 1000,
+  max: 30,
+  message: "Too many contact attempts. Please wait a moment and try again.",
+});
+
+const validatePropertyCreate = [
+  body("title").trim().notEmpty().isLength({ max: 140 }),
+  body("description").trim().notEmpty().isLength({ min: 20, max: 5000 }),
+  body("price").notEmpty().isFloat({ min: 0 }).toFloat(),
+  body("location").trim().notEmpty().isLength({ max: 120 }),
+  body("propertyType").trim().notEmpty().isLength({ max: 80 }),
+  body("status").optional().isIn(PROPERTY_STATUSES),
+  body("furnished").optional({ checkFalsy: true }).isIn(FURNISHED_OPTIONS),
+  body("bedrooms").notEmpty().isInt({ min: 0, max: 100 }).toInt(),
+  body("bathrooms").notEmpty().isInt({ min: 0, max: 100 }).toInt(),
+  body("area").notEmpty().isFloat({ min: 0 }).toFloat(),
+  body("latitude").optional({ checkFalsy: true }).isFloat({ min: -90, max: 90 }).toFloat(),
+  body("longitude")
+    .optional({ checkFalsy: true })
+    .isFloat({ min: -180, max: 180 })
+    .toFloat(),
+  body("contactName").optional({ checkFalsy: true }).trim().isLength({ max: 100 }),
+  body("contactPhone").optional({ checkFalsy: true }).trim().isLength({ max: 30 }),
+  body("contactEmail").optional({ checkFalsy: true }).isEmail().normalizeEmail(),
+];
+
+const validatePropertyUpdate = [
+  param("id").isMongoId(),
+  body("title").optional().trim().notEmpty().isLength({ max: 140 }),
+  body("description").optional().trim().notEmpty().isLength({ min: 20, max: 5000 }),
+  body("price").optional().isFloat({ min: 0 }).toFloat(),
+  body("location").optional().trim().notEmpty().isLength({ max: 120 }),
+  body("propertyType").optional().trim().notEmpty().isLength({ max: 80 }),
+  body("status").optional().isIn(PROPERTY_STATUSES),
+  body("furnished").optional({ checkFalsy: true }).isIn(FURNISHED_OPTIONS),
+  body("bedrooms").optional().isInt({ min: 0, max: 100 }).toInt(),
+  body("bathrooms").optional().isInt({ min: 0, max: 100 }).toInt(),
+  body("area").optional().isFloat({ min: 0 }).toFloat(),
+  body("latitude").optional({ checkFalsy: true }).isFloat({ min: -90, max: 90 }).toFloat(),
+  body("longitude")
+    .optional({ checkFalsy: true })
+    .isFloat({ min: -180, max: 180 })
+    .toFloat(),
+  body("contactName").optional({ checkFalsy: true }).trim().isLength({ max: 100 }),
+  body("contactPhone").optional({ checkFalsy: true }).trim().isLength({ max: 30 }),
+  body("contactEmail").optional({ checkFalsy: true }).isEmail().normalizeEmail(),
+  body("reviewStatus").optional().isIn(REVIEW_STATUSES),
+  body("reviewNotes").optional({ checkFalsy: true }).trim().isLength({ max: 1000 }),
+];
+
+const validateInquiryUpdate = [
+  param("id").isMongoId(),
+  body("status").optional().isIn(INQUIRY_STATUSES),
+  body("followUpNotes").optional().trim().isLength({ max: 2000 }),
+  body("assignedTo")
+    .optional()
+    .custom((value) => !value || /^[a-f\d]{24}$/i.test(String(value))),
+];
+
+const validateContactClick = [
+  param("id").isMongoId(),
+  body("source").optional().isIn(CONTACT_SOURCES),
+  body("pageUrl").optional({ checkFalsy: true }).isString().isLength({ max: 500 }),
+  body("name").optional({ checkFalsy: true }).trim().isLength({ max: 100 }),
+  body("email").optional({ checkFalsy: true }).isEmail().normalizeEmail(),
+  body("phone").optional({ checkFalsy: true }).trim().isLength({ max: 30 }),
+  body("message").optional({ checkFalsy: true }).trim().isLength({ max: 2000 }),
+  body("phone").custom((value, { req }) => {
+    if (req.body.source === "whatsapp" && !String(value || "").trim()) {
+      throw new Error("Phone number is required to save a WhatsApp lead.");
+    }
+
+    return true;
+  }),
+];
+
+const validateContactForm = [
+  body("name").trim().notEmpty().isLength({ max: 100 }),
+  body("email").isEmail().normalizeEmail(),
+  body("phone").optional({ checkFalsy: true }).trim().isLength({ max: 30 }),
+  body("message").trim().notEmpty().isLength({ min: 10, max: 2000 }),
+  body("propertyId").isMongoId(),
+  body("inquiryType").optional({ checkFalsy: true }).isIn(CONTACT_INQUIRY_TYPES),
+  body("source").optional({ checkFalsy: true }).isIn(CONTACT_FORM_SOURCES),
+  body("preferredDate").optional({ checkFalsy: true }).isISO8601().toDate(),
+  body("preferredTime").optional({ checkFalsy: true }).trim().isLength({ max: 20 }),
+  body("pageUrl").optional({ checkFalsy: true }).isString().isLength({ max: 500 }),
+];
+
+const validateSavedSearchCreate = [
+  body("name").trim().notEmpty().isLength({ max: 100 }),
+  body("filters").optional().isObject(),
+  body("alertsEnabled").optional().isBoolean(),
+];
+
+const validateSavedSearchUpdate = [
+  param("id").isMongoId(),
+  body("name").optional().trim().notEmpty().isLength({ max: 100 }),
+  body("filters").optional().isObject(),
+  body("alertsEnabled").optional().isBoolean(),
+];
 
 const buildPropertyQuery = (filters = {}, options = {}) => {
   const {
@@ -248,7 +375,13 @@ const upload = multer({
 });
 
 // Create a property (auth required)
-router.post("/", auth, upload.array("images", 10), async (req, res) => {
+router.post(
+  "/",
+  auth,
+  upload.array("images", 10),
+  validatePropertyCreate,
+  validateRequest,
+  async (req, res) => {
   try {
     const imagePaths = await uploadImages(req.files);
     const reviewStatus = isAdmin(req.user) ? "approved" : "pending";
@@ -476,10 +609,14 @@ router.get("/inquiries", auth, async (req, res) => {
 });
 
 // Update lead status/follow-up fields for the signed-in property owner
-router.patch("/inquiries/:id", auth, async (req, res) => {
+router.patch(
+  "/inquiries/:id",
+  auth,
+  validateInquiryUpdate,
+  validateRequest,
+  async (req, res) => {
   try {
     const { status, followUpNotes, assignedTo } = req.body;
-    const allowedStatuses = ["New", "Contacted", "Closed", "Archived"];
     const query =
       req.user.role === "admin"
         ? { _id: req.params.id }
@@ -488,10 +625,6 @@ router.patch("/inquiries/:id", auth, async (req, res) => {
     const update = {};
 
     if (status !== undefined) {
-      if (!allowedStatuses.includes(status)) {
-        return res.status(400).json({ error: "Invalid inquiry status" });
-      }
-
       update.status = status;
       if (status === "Contacted") {
         update.lastContactedAt = new Date();
@@ -546,7 +679,12 @@ router.delete("/inquiries/:id", auth, async (req, res) => {
 });
 
 // Track contact action clicks such as WhatsApp, call, and email
-router.post("/:id/contact-click", async (req, res) => {
+router.post(
+  "/:id/contact-click",
+  contactClickRateLimiter,
+  validateContactClick,
+  validateRequest,
+  async (req, res) => {
   try {
     const {
       source = "whatsapp",
@@ -556,19 +694,7 @@ router.post("/:id/contact-click", async (req, res) => {
       phone,
       message,
     } = req.body;
-    const allowedSources = ["whatsapp", "phone", "email"];
-
-    if (!allowedSources.includes(source)) {
-      return res.status(400).json({ error: "Invalid contact source" });
-    }
-
     const trimmedPhone = String(phone || "").trim();
-
-    if (source === "whatsapp" && !trimmedPhone) {
-      return res.status(400).json({
-        error: "Phone number is required to save a WhatsApp lead.",
-      });
-    }
 
     const property = await Property.findById(req.params.id).populate(
       "listedBy",
@@ -613,13 +739,14 @@ router.get("/saved-searches", auth, async (req, res) => {
   }
 });
 
-router.post("/saved-searches", auth, async (req, res) => {
+router.post(
+  "/saved-searches",
+  auth,
+  validateSavedSearchCreate,
+  validateRequest,
+  async (req, res) => {
   try {
     const { name, filters = {}, alertsEnabled = true } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ error: "Saved search name is required" });
-    }
 
     const savedSearch = await SavedSearch.create({
       user: req.user._id,
@@ -634,7 +761,12 @@ router.post("/saved-searches", auth, async (req, res) => {
   }
 });
 
-router.patch("/saved-searches/:id", auth, async (req, res) => {
+router.patch(
+  "/saved-searches/:id",
+  auth,
+  validateSavedSearchUpdate,
+  validateRequest,
+  async (req, res) => {
   try {
     const updates = {};
 
@@ -767,7 +899,13 @@ router.get("/:id", async (req, res) => {
 });
 
 // Update a property (auth required)
-router.put("/:id", auth, upload.array("images", 10), async (req, res) => {
+router.put(
+  "/:id",
+  auth,
+  upload.array("images", 10),
+  validatePropertyUpdate,
+  validateRequest,
+  async (req, res) => {
   try {
     let update = { ...req.body };
     const query = isAdmin(req.user)
@@ -831,7 +969,12 @@ router.delete("/:id", auth, async (req, res) => {
 });
 
 // Contact form endpoint
-router.post("/contact", async (req, res) => {
+router.post(
+  "/contact",
+  contactRateLimiter,
+  validateContactForm,
+  validateRequest,
+  async (req, res) => {
   try {
     const {
       name,
@@ -845,9 +988,6 @@ router.post("/contact", async (req, res) => {
       source = "contact_form",
       pageUrl,
     } = req.body;
-    if (!name || !email || !message || !propertyId) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
     const property = await Property.findById(propertyId).populate("listedBy");
     if (!property) return res.status(404).json({ error: "Property not found" });
     const ownerId = property.listedBy?._id || property.listedBy;

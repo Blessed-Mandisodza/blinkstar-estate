@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import HotelIcon from "@mui/icons-material/Hotel";
 import BathtubIcon from "@mui/icons-material/Bathtub";
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import { resolveMediaUrl } from "../../utils/authFetch";
@@ -31,7 +32,16 @@ const formatPrice = (price) => {
   return `$${price.toLocaleString()}`;
 };
 
-const PropertyCard = ({ property, isFavorite, onFavoriteToggle }) => {
+const PropertyCard = ({
+  property,
+  isFavorite,
+  onFavoriteToggle,
+  isCompared = false,
+  onCompareToggle,
+  compareDisabled = false,
+  showCompareAction = false,
+  showContactInfo = true,
+}) => {
   const navigate = useNavigate();
 
   const handleCardClick = (e) => {
@@ -105,32 +115,76 @@ const PropertyCard = ({ property, isFavorite, onFavoriteToggle }) => {
             }}
           />
         )}
-        {onFavoriteToggle && (
-          <Tooltip
-            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        {(showCompareAction || onFavoriteToggle) && (
+          <Stack
+            spacing={1}
+            sx={{
+              position: "absolute",
+              top: 12,
+              right: 12,
+              zIndex: 2,
+            }}
           >
-            <IconButton
-              aria-label="favorite"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onFavoriteToggle();
-              }}
-              sx={{
-                position: "absolute",
-                top: 12,
-                right: 12,
-                color: "red",
-                backgroundColor: "rgba(255, 255, 255, 0.9)",
-                zIndex: 2,
-                "&:hover": {
-                  backgroundColor: "rgba(255, 255, 255, 1)",
-                },
-              }}
-            >
-              {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-            </IconButton>
-          </Tooltip>
+            {showCompareAction && onCompareToggle && (
+              <Tooltip
+                title={
+                  isCompared
+                    ? "Remove from compare"
+                    : compareDisabled
+                      ? "Compare up to 3 properties"
+                      : "Add to compare"
+                }
+              >
+                <span>
+                  <IconButton
+                    aria-label="compare property"
+                    disabled={compareDisabled}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onCompareToggle();
+                    }}
+                    sx={{
+                      color: isCompared ? "primary.main" : "#334155",
+                      backgroundColor: isCompared
+                        ? "rgba(219, 234, 254, 0.96)"
+                        : "rgba(255, 255, 255, 0.9)",
+                      "&:hover": {
+                        backgroundColor: isCompared
+                          ? "rgba(191, 219, 254, 1)"
+                          : "rgba(255, 255, 255, 1)",
+                      },
+                    }}
+                  >
+                    <CompareArrowsIcon />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+            {onFavoriteToggle && (
+              <Tooltip
+                title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+              >
+                <IconButton
+                  aria-label="favorite"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onFavoriteToggle();
+                  }}
+                  sx={{
+                    color: "red",
+                    backgroundColor: "rgba(255, 255, 255, 0.9)",
+                    "&:hover": {
+                      backgroundColor: "rgba(255, 255, 255, 1)",
+                    },
+                  }}
+                >
+                  {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
         )}
       </Box>
       <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
@@ -186,9 +240,10 @@ const PropertyCard = ({ property, isFavorite, onFavoriteToggle }) => {
           </Stack>
         </Stack>
         {/* Contact Info Section */}
-        {(property.contactName ||
-          property.contactPhone ||
-          property.contactEmail) && (
+        {showContactInfo &&
+          (property.contactName ||
+            property.contactPhone ||
+            property.contactEmail) && (
           <Box
             mt={2}
             p={1.5}

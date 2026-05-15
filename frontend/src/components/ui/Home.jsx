@@ -9,6 +9,7 @@ import FeaturedProperties from "./FeaturedProperties";
 import Footer from "./Footer";
 import PropertyList from "../property/PropertyList";
 import PropertyCategories from "../property/PropertyCategories";
+import RecentlyViewedProperties from "../property/RecentlyViewedProperties";
 
 const defaultFilters = {
   location: "",
@@ -85,6 +86,7 @@ const Home = () => {
               filters={filters}
               desktopColumns={3}
               pageSizeOverride={6}
+              showContactInfo={false}
             />
           </Container>
         </Box>
@@ -94,6 +96,7 @@ const Home = () => {
           <>
             <PropertyCategories />
             <FeaturedProperties />
+            <RecentlyViewedProperties showContactInfo={false} />
           </>
         }
       />
