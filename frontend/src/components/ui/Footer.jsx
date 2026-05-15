@@ -22,6 +22,7 @@ import Reveal from "./Reveal";
 
 const footerLinks = [
   ["Properties", "/properties"],
+  ["Request A Property", "/request-property"],
   ["Map Search", "/map"],
   ["Mortgage", "/mortgage"],
   ["Agents", "/agents"],

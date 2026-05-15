@@ -11,6 +11,7 @@ import { keyframes } from "@mui/system";
 import { Link } from "react-router-dom";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import ManageSearchIcon from "@mui/icons-material/ManageSearch";
 import SearchIcon from "@mui/icons-material/Search";
 import HomeWorkIcon from "@mui/icons-material/HomeWork";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -359,13 +360,13 @@ export default function HomeHighlights({ afterTrustContent = null }) {
                 >
                   <Button
                     component={Link}
-                    to="/properties"
+                    to="/request-property"
                     variant="contained"
                     size="large"
-                    startIcon={<SearchIcon />}
+                    startIcon={<ManageSearchIcon />}
                     sx={{ fontWeight: 800 }}
                   >
-                    Find A Property
+                    Request A Property
                   </Button>
                   <Button
                     href="https://api.whatsapp.com/send?phone=263782931905"

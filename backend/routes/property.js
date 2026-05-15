@@ -4,6 +4,7 @@ const { body, param } = require("express-validator");
 const Property = require("../models/Property");
 const Inquiry = require("../models/Inquiry");
 const SavedSearch = require("../models/SavedSearch");
+const PropertyRequest = require("../models/PropertyRequest");
 const auth = require("../middleware/auth");
 const validateRequest = require("../middleware/validateRequest");
 const createRateLimiter = require("../middleware/rateLimiter");
@@ -25,6 +26,9 @@ const INQUIRY_STATUSES = ["New", "Contacted", "Closed", "Archived"];
 const CONTACT_SOURCES = ["whatsapp", "phone", "email"];
 const CONTACT_FORM_SOURCES = ["contact_form", ...CONTACT_SOURCES];
 const CONTACT_INQUIRY_TYPES = ["general", "viewing", "offer"];
+const REQUEST_LISTING_TYPES = ["For Sale", "For Rent", "Any"];
+const REQUEST_STATUSES = ["New", "Reviewed", "Matched", "Closed", "Archived"];
+const REQUEST_FURNISHED_OPTIONS = ["Any", ...FURNISHED_OPTIONS];
 
 const escapeRegex = (value = "") =>
   String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -47,10 +51,19 @@ const applyNumberFilter = (query, field, minValue, maxValue) => {
 };
 
 const isAdmin = (user) => user?.role === "admin";
+const canManageRequests = (user) => user?.role === "admin" || user?.role === "agent";
 
 const requireAdmin = (req, res, next) => {
   if (!isAdmin(req.user)) {
     return res.status(403).json({ error: "Admin access required" });
+  }
+
+  return next();
+};
+
+const requireRequestManager = (req, res, next) => {
+  if (!canManageRequests(req.user)) {
+    return res.status(403).json({ error: "Request manager access required" });
   }
 
   return next();
@@ -89,6 +102,13 @@ const contactClickRateLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   max: 30,
   message: "Too many contact attempts. Please wait a moment and try again.",
+});
+
+const propertyRequestRateLimiter = createRateLimiter({
+  keyPrefix: "property-request",
+  windowMs: 10 * 60 * 1000,
+  max: 8,
+  message: "Too many property requests submitted. Please wait a few minutes and try again.",
 });
 
 const validatePropertyCreate = [
@@ -186,6 +206,33 @@ const validateSavedSearchUpdate = [
   body("name").optional().trim().notEmpty().isLength({ max: 100 }),
   body("filters").optional().isObject(),
   body("alertsEnabled").optional().isBoolean(),
+];
+
+const validatePropertyRequestCreate = [
+  body("name").trim().notEmpty().isLength({ max: 100 }),
+  body("email").isEmail().normalizeEmail(),
+  body("phone").optional({ checkFalsy: true }).trim().isLength({ max: 30 }),
+  body("listingType").optional({ checkFalsy: true }).isIn(REQUEST_LISTING_TYPES),
+  body("propertyType").optional({ checkFalsy: true }).trim().isLength({ max: 80 }),
+  body("preferredLocation").trim().notEmpty().isLength({ max: 160 }),
+  body("maxPrice").optional({ checkFalsy: true }).isFloat({ min: 0 }).toFloat(),
+  body("minBedrooms").optional({ checkFalsy: true }).isInt({ min: 0, max: 100 }).toInt(),
+  body("minBathrooms").optional({ checkFalsy: true }).isInt({ min: 0, max: 100 }).toInt(),
+  body("furnishedPreference")
+    .optional({ checkFalsy: true })
+    .isIn(REQUEST_FURNISHED_OPTIONS),
+  body("timeline").optional({ checkFalsy: true }).trim().isLength({ max: 60 }),
+  body("message").trim().notEmpty().isLength({ min: 10, max: 2500 }),
+  body("pageUrl").optional({ checkFalsy: true }).isString().isLength({ max: 500 }),
+];
+
+const validatePropertyRequestUpdate = [
+  param("id").isMongoId(),
+  body("status").optional().isIn(REQUEST_STATUSES),
+  body("followUpNotes").optional().trim().isLength({ max: 2000 }),
+  body("assignedTo")
+    .optional()
+    .custom((value) => !value || /^[a-f\d]{24}$/i.test(String(value))),
 ];
 
 const buildPropertyQuery = (filters = {}, options = {}) => {
@@ -725,6 +772,190 @@ router.post(
     res.status(500).json({ error: err.message });
   }
 });
+
+// Public "request a property" submissions
+router.post(
+  "/requests",
+  propertyRequestRateLimiter,
+  validatePropertyRequestCreate,
+  validateRequest,
+  async (req, res) => {
+    try {
+      const {
+        name,
+        email,
+        phone,
+        listingType = "Any",
+        propertyType,
+        preferredLocation,
+        maxPrice,
+        minBedrooms,
+        minBathrooms,
+        furnishedPreference = "Any",
+        timeline,
+        message,
+        pageUrl,
+      } = req.body;
+
+      const propertyRequest = await PropertyRequest.create({
+        name,
+        email,
+        phone,
+        listingType,
+        propertyType,
+        preferredLocation,
+        maxPrice,
+        minBedrooms,
+        minBathrooms,
+        furnishedPreference,
+        timeline,
+        message,
+        pageUrl,
+        userAgent: req.get("user-agent"),
+      });
+
+      const recipientEmail = process.env.EMAIL_TO || process.env.EMAIL_USER;
+      const transporter = getMailTransporter();
+
+      if (!transporter || !recipientEmail) {
+        return res.status(202).json({
+          success: true,
+          requestId: propertyRequest._id,
+          warning: "Property request saved, but email notification is not configured.",
+        });
+      }
+
+      const requestSummary = [
+        `New property request from ${name}.`,
+        "",
+        `Email: ${email}`,
+        `Phone: ${phone || "N/A"}`,
+        `Looking for: ${listingType}`,
+        `Property type: ${propertyType || "Any"}`,
+        `Preferred location: ${preferredLocation}`,
+        `Maximum budget: ${
+          maxPrice ? `$${Number(maxPrice).toLocaleString()}` : "Not specified"
+        }`,
+        `Minimum bedrooms: ${minBedrooms || "Not specified"}`,
+        `Minimum bathrooms: ${minBathrooms || "Not specified"}`,
+        `Furnished: ${furnishedPreference || "Any"}`,
+        `Timeline: ${timeline || "Not specified"}`,
+        pageUrl ? `Page URL: ${pageUrl}` : null,
+        "",
+        "Message:",
+        message,
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      try {
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: recipientEmail,
+          replyTo: email,
+          subject: `New Property Request: ${preferredLocation}`,
+          text: requestSummary,
+        });
+
+        await transporter
+          .sendMail({
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "We received your property request",
+            text: [
+              `Hi ${name},`,
+              "",
+              "Thanks for telling BlinkStar Properties what you are looking for.",
+              "Your request has been saved and our team can now follow up with matching options.",
+              "",
+              `Preferred location: ${preferredLocation}`,
+              `Listing type: ${listingType}`,
+              `Property type: ${propertyType || "Any"}`,
+              "",
+              "We will be in touch soon.",
+            ].join("\n"),
+          })
+          .catch((autoReplyError) => {
+            console.error("Property request auto-reply email error:", autoReplyError);
+          });
+
+        return res.status(201).json({ success: true, requestId: propertyRequest._id });
+      } catch (emailError) {
+        console.error("Property request email notification error:", emailError);
+        return res.status(202).json({
+          success: true,
+          requestId: propertyRequest._id,
+          warning: "Property request saved, but email notification could not be sent.",
+        });
+      }
+    } catch (err) {
+      console.error("Property request submission error:", err);
+      return res.status(500).json({ error: "Failed to save property request" });
+    }
+  }
+);
+
+router.get("/requests", auth, requireRequestManager, async (req, res) => {
+  try {
+    const { limit = 12, status } = req.query;
+    const query = {};
+
+    if (status && REQUEST_STATUSES.includes(status)) {
+      query.status = status;
+    }
+
+    const requests = await PropertyRequest.find(query)
+      .populate("assignedTo", "name email role")
+      .sort({ createdAt: -1 })
+      .limit(Math.min(toNumber(limit) || 12, 50));
+
+    res.json({ requests });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch(
+  "/requests/:id",
+  auth,
+  requireRequestManager,
+  validatePropertyRequestUpdate,
+  validateRequest,
+  async (req, res) => {
+    try {
+      const update = {};
+
+      if (req.body.status !== undefined) {
+        update.status = req.body.status;
+        if (req.body.status !== "New") {
+          update.lastContactedAt = new Date();
+        }
+      }
+
+      if (req.body.followUpNotes !== undefined) {
+        update.followUpNotes = req.body.followUpNotes;
+      }
+
+      if (req.body.assignedTo !== undefined && isAdmin(req.user)) {
+        update.assignedTo = req.body.assignedTo || undefined;
+      }
+
+      const propertyRequest = await PropertyRequest.findByIdAndUpdate(
+        req.params.id,
+        update,
+        { new: true }
+      ).populate("assignedTo", "name email role");
+
+      if (!propertyRequest) {
+        return res.status(404).json({ error: "Property request not found" });
+      }
+
+      return res.json({ request: propertyRequest });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+);
 
 // Saved searches for signed-in users
 router.get("/saved-searches", auth, async (req, res) => {

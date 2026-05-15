@@ -129,6 +129,14 @@ app.use("/api/property", require("./routes/property"));
 app.use("/api/users", require("./routes/users"));
 app.use("/api/messages", require("./routes/message"));
 
+app.use("/api", (req, res) => {
+  res.status(404).json({
+    message: "API route not found",
+    path: req.originalUrl,
+    method: req.method,
+  });
+});
+
 app.get("/", (req, res) => {
   res.json({
     message: "Blinkstar Properties backend is running.",

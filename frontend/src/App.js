@@ -15,6 +15,7 @@ import Properties from "./components/ui/Properties";
 import PropertyDetail from "./components/property/PropertyDetail";
 import PropertyForm from "./components/property/PropertyForm";
 import CompareProperties from "./components/property/CompareProperties";
+import RequestProperty from "./components/property/RequestProperty";
 import SavedProperties from "./components/property/SavedProperties";
 import SavedSearches from "./components/property/SavedSearches";
 import PropertyMap from "./components/property/PropertyMap";
@@ -64,6 +65,7 @@ function App() {
             />
             <Route path="/properties" element={<Properties />} />
             <Route path="/compare" element={<CompareProperties />} />
+            <Route path="/request-property" element={<RequestProperty />} />
             <Route path="/properties/:type/:location" element={<SeoListings />} />
             <Route path="/map" element={<PropertyMap />} />
             <Route path="/mortgage" element={<MortgageCalculator />} />

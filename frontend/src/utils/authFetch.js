@@ -1,4 +1,26 @@
-const API_BASE = (process.env.REACT_APP_API_URL || "").replace(/\/$/, "");
+function normalizeApiBase(value = "") {
+  const trimmed = String(value).trim().replace(/\/+$/, "");
+
+  if (!trimmed) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(trimmed)) {
+    return `http://${trimmed}`;
+  }
+
+  if (/^[\w.-]+\.[a-z]{2,}(:\d+)?$/i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+
+  return trimmed;
+}
+
+const API_BASE = normalizeApiBase(process.env.REACT_APP_API_URL || "");
 const LOCAL_API_FALLBACK =
   typeof window !== "undefined" &&
   /^https?:\/\/(localhost|127\.0\.0\.1):3000$/.test(window.location.origin)
@@ -19,7 +41,7 @@ async function ensureApiDidNotReturnHtml(response, path) {
   if (contentType.includes("text/html")) {
     const preview = (await response.clone().text()).slice(0, 80).trim();
     throw new Error(
-      `API returned HTML instead of JSON for ${path}. Check REACT_APP_API_URL and your Vercel project domains. Preview: ${preview}`
+      `API returned HTML instead of JSON for ${path}. Check REACT_APP_API_URL, frontend rewrites, and whether the backend deployment includes this route. Preview: ${preview}`
     );
   }
 

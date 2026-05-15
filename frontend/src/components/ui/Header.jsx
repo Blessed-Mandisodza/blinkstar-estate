@@ -24,6 +24,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import HomeIcon from "@mui/icons-material/Home";
 import BusinessIcon from "@mui/icons-material/Business";
+import ManageSearchIcon from "@mui/icons-material/ManageSearch";
 import MapIcon from "@mui/icons-material/Map";
 import CalculateIcon from "@mui/icons-material/Calculate";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -42,6 +43,7 @@ import { getUserAvatarSrc, getUserInitial } from "../../utils/userAvatar";
 const navLinks = [
   { label: "Home", path: "/", icon: <HomeIcon /> },
   { label: "Properties", path: "/properties", icon: <BusinessIcon /> },
+  { label: "Request", path: "/request-property", icon: <ManageSearchIcon /> },
   { label: "Map", path: "/map", icon: <MapIcon /> },
   { label: "Mortgage", path: "/mortgage", icon: <CalculateIcon /> },
   { label: "Agents", path: "/agents", icon: <GroupsIcon /> },

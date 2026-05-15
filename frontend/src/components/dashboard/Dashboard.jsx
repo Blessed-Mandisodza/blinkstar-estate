@@ -145,7 +145,16 @@ const formatInquirySource = (source = "contact_form") =>
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 const leadStatusOptions = ["New", "Contacted", "Closed", "Archived"];
+const requestStatusOptions = ["New", "Reviewed", "Matched", "Closed", "Archived"];
 const recentInquiryLimit = 18;
+const recentRequestLimit = 10;
+
+const formatCurrency = (value) => {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount > 0
+    ? `$${amount.toLocaleString()}`
+    : "Flexible budget";
+};
 
 export default function Dashboard() {
   const [open, setOpen] = useState(false);
@@ -157,8 +166,11 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [properties, setProperties] = useState([]);
   const [inquiries, setInquiries] = useState([]);
+  const [propertyRequests, setPropertyRequests] = useState([]);
   const [savingLeadId, setSavingLeadId] = useState("");
+  const [savingRequestId, setSavingRequestId] = useState("");
   const [leadError, setLeadError] = useState("");
+  const [requestError, setRequestError] = useState("");
   const [stats, setStats] = useState({
     totalProperties: 0,
     activeListings: 0,
@@ -172,6 +184,7 @@ export default function Dashboard() {
     [inquiries, properties]
   );
   const visibleInquiries = inquiries.slice(0, 12);
+  const visiblePropertyRequests = propertyRequests.slice(0, 6);
 
   const newLeadCount = inquiries.filter((inquiry) => inquiry.status === "New").length;
 
@@ -198,6 +211,16 @@ export default function Dashboard() {
         if (inquiryRes.ok) {
           const inquiryData = await inquiryRes.json();
           setInquiries(inquiryData.inquiries || []);
+        }
+
+        if (["admin", "agent"].includes(userData.role)) {
+          const requestRes = await authFetch(
+            `/api/property/requests?limit=${recentRequestLimit}`
+          );
+          if (requestRes.ok) {
+            const requestData = await requestRes.json();
+            setPropertyRequests(requestData.requests || []);
+          }
         }
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
@@ -271,6 +294,43 @@ export default function Dashboard() {
       setLeadError(err.message || "Failed to update inquiry");
     } finally {
       setSavingLeadId("");
+    }
+  };
+
+  const updatePropertyRequestLocal = (requestId, changes) => {
+    setPropertyRequests((current) =>
+      current.map((request) =>
+        request._id === requestId ? { ...request, ...changes } : request
+      )
+    );
+  };
+
+  const savePropertyRequest = async (requestId, changes) => {
+    setSavingRequestId(requestId);
+    setRequestError("");
+
+    try {
+      const res = await authFetch(`/api/property/requests/${requestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(changes),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update property request");
+      }
+
+      setPropertyRequests((current) =>
+        current.map((request) =>
+          request._id === requestId ? data.request : request
+        )
+      );
+    } catch (err) {
+      setRequestError(err.message || "Failed to update property request");
+    } finally {
+      setSavingRequestId("");
     }
   };
 
@@ -962,6 +1022,192 @@ export default function Dashboard() {
                 </Box>
               )}
             </Box>
+
+            {["admin", "agent"].includes(user?.role) && (
+              <Box sx={{ mb: 4 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: { xs: "flex-start", sm: "center" },
+                    flexDirection: { xs: "column", sm: "row" },
+                    gap: 1.5,
+                    mb: 2,
+                  }}
+                >
+                  <Box>
+                    <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                      Property Requests
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {visiblePropertyRequests.length} showing from {propertyRequests.length} recent request
+                      {propertyRequests.length === 1 ? "" : "s"}
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    startIcon={<RefreshIcon />}
+                    onClick={async () => {
+                      try {
+                        const requestRes = await authFetch(
+                          `/api/property/requests?limit=${recentRequestLimit}`
+                        );
+                        const requestData = await requestRes.json();
+                        setPropertyRequests(requestData.requests || []);
+                      } catch (err) {
+                        setRequestError("Could not refresh property requests");
+                      }
+                    }}
+                  >
+                    Refresh
+                  </Button>
+                </Box>
+                {requestError && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {requestError}
+                  </Alert>
+                )}
+                {propertyRequests.length === 0 ? (
+                  <Card sx={{ borderRadius: 2, border: "1px solid #e5e7eb" }}>
+                    <CardContent>
+                      <Typography sx={{ textAlign: "center", color: "#777" }}>
+                        No property requests yet.
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        sm: "repeat(2, minmax(0, 1fr))",
+                        xl: "repeat(3, minmax(0, 1fr))",
+                      },
+                      gap: 2,
+                    }}
+                  >
+                    {visiblePropertyRequests.map((request) => (
+                      <Box key={request._id} sx={{ minWidth: 0 }}>
+                        <Card
+                          sx={{
+                            height: "100%",
+                            borderRadius: 2,
+                            border: "1px solid #e5e7eb",
+                            boxShadow: "0 10px 24px rgba(15, 23, 42, 0.08)",
+                          }}
+                        >
+                          <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              sx={{ mb: 1, flexWrap: "wrap", rowGap: 0.75 }}
+                            >
+                              <Chip label={request.listingType || "Any"} size="small" color="primary" />
+                              {request.propertyType && (
+                                <Chip label={request.propertyType} size="small" variant="outlined" />
+                              )}
+                              <Chip label={request.status || "New"} size="small" />
+                            </Stack>
+                            <Typography variant="subtitle1" fontWeight={800}>
+                              {request.name}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>
+                              {request.preferredLocation}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, overflowWrap: "anywhere" }}>
+                              {request.email}
+                              {request.phone ? ` | ${request.phone}` : ""}
+                            </Typography>
+                            <Typography variant="body2" sx={{ mt: 1 }}>
+                              Budget: {formatCurrency(request.maxPrice)}
+                              {request.minBedrooms ? ` | ${request.minBedrooms}+ beds` : ""}
+                              {request.minBathrooms ? ` | ${request.minBathrooms}+ baths` : ""}
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                mt: 1,
+                                display: "-webkit-box",
+                                WebkitBoxOrient: "vertical",
+                                WebkitLineClamp: 3,
+                                overflow: "hidden",
+                              }}
+                            >
+                              {request.message}
+                            </Typography>
+                            <TextField
+                              select
+                              size="small"
+                              label="Status"
+                              value={request.status || "New"}
+                              fullWidth
+                              sx={{ mt: 1.25 }}
+                              onChange={(event) => {
+                                const status = event.target.value;
+                                updatePropertyRequestLocal(request._id, { status });
+                                savePropertyRequest(request._id, { status });
+                              }}
+                            >
+                              {requestStatusOptions.map((status) => (
+                                <MenuItem key={status} value={status}>
+                                  {status}
+                                </MenuItem>
+                              ))}
+                            </TextField>
+                            <TextField
+                              size="small"
+                              label="Follow-up notes"
+                              value={request.followUpNotes || ""}
+                              fullWidth
+                              multiline
+                              minRows={1}
+                              sx={{ mt: 1.25 }}
+                              onChange={(event) =>
+                                updatePropertyRequestLocal(request._id, {
+                                  followUpNotes: event.target.value,
+                                })
+                              }
+                              onBlur={(event) =>
+                                savePropertyRequest(request._id, {
+                                  followUpNotes: event.target.value,
+                                })
+                              }
+                            />
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              sx={{ mt: 1.25, flexWrap: "wrap", rowGap: 0.75 }}
+                            >
+                              {request.phone && (
+                                <Button size="small" variant="outlined" href={`tel:${request.phone}`}>
+                                  Call
+                                </Button>
+                              )}
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                href={`mailto:${request.email}`}
+                              >
+                                Email
+                              </Button>
+                            </Stack>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ display: "block", mt: 1 }}
+                            >
+                              {formatInquiryDate(request.createdAt)}
+                              {savingRequestId === request._id ? " | Saving..." : ""}
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            )}
 
             {/* Recent Properties Section */}
             <Box sx={{ mb: 4 }}>
